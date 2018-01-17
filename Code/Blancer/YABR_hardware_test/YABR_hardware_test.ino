@@ -147,7 +147,35 @@ void loop()
     }
   }
   else Serial.println("No Nunchuck device found at address 0x52");
-  while(1);
+  if(MPU_6050_found)
+  {
+    while(1){
+      Wire.write(0x3F);
+      Wire.endTransmission();
+      Wire.requestFrom(0x68,4);
+      while(Wire.available() < 4);
+
+      // Serial.print("Acc X = "); 
+      // Serial.print(Wire.read()<<8|Wire.read());
+      // Serial.print(" Acc Y = "); 
+      // Serial.print(Wire.read()<<8|Wire.read());
+      Serial.print(" Acc Z = "); 
+      Serial.print(Wire.read()<<8|Wire.read());
+
+      Serial.print(" Temp = "); 
+      Serial.print((Wire.read()<<8|Wire.read())/340 + 36.53);
+
+      // Serial.print(" Gyro X = "); 
+      // Serial.print(Wire.read()<<8|Wire.read());
+      // Serial.print(" Gyro Y = "); 
+      // Serial.print(Wire.read()<<8|Wire.read());
+      // Serial.print(" Gyro Z = "); 
+      // Serial.print(Wire.read()<<8|Wire.read());
+
+      delay(200);
+      Serial.println();
+    }
+  }
 }
 
 void set_gyro_registers(){
