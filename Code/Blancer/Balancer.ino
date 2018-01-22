@@ -22,6 +22,11 @@ float pid_d_gain = 30;        //Gain setting for the D-controller (30)
 float turning_speed = 30;     //Turning speed (20)
 float max_target_speed = 150; //Max target speed (100)
 
+const int battery_low_threshold = 1050, diode_voltage_compensation = 85;
+const int loop_time = 4000;
+const int calibration_loops = 500;
+const int acc_raw_limit = 8200;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Declaring global variables
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -71,12 +76,12 @@ void setup()
   //Set the full scale of the accelerometer to +/- 4g.
   Wire.beginTransmission(gyro_address); //Start communication with the address found during search.
   Wire.write(0x1C);                     //We want to write to the ACCEL_CONFIG register (1A hex)
-  Wire.write(0x08);                     //Set the register bits as 00001000 (+/- 4g full scale range)
+  Wire.write(0x08);                     //Set the register bits as 00001000 (+/- 4g full scale range), 8192 LSB/g
   Wire.endTransmission();               //End the transmission with the gyro
   //Set some filtering to improve the raw data.
   Wire.beginTransmission(gyro_address); //Start communication with the address found during search
   Wire.write(0x1A);                     //We want to write to the CONFIG register (1A hex)
-  Wire.write(0x03);                     //Set the register bits as 00000011 (Set Digital Low Pass Filter to ~43Hz)
+  Wire.write(0x03);                     //Set the register bits as 00000011 (Set Digital Low Pass Filter to 44Hz for Acc with 4.9ms delay, and 42Hz for Gyro with 4.8ms delay)
   Wire.endTransmission();               //End the transmission with the gyro
 
   pinMode(2, OUTPUT); //Configure digital poort 2 as output
@@ -84,15 +89,16 @@ void setup()
   pinMode(4, OUTPUT); //Configure digital poort 4 as output
   pinMode(5, OUTPUT); //Configure digital poort 5 as output
 
-  pinMode(6, OUTPUT); //Configure digital poort 2 as output
-  pinMode(7, OUTPUT); //Configure digital poort 3 as output
-  pinMode(8, OUTPUT); //Configure digital poort 4 as output
-  pinMode(9, OUTPUT); //Configure digital poort 5 as output
+  pinMode(6, OUTPUT); //Configure digital poort 6 as output
+  pinMode(7, OUTPUT); //Configure digital poort 7 as output
+  pinMode(8, OUTPUT); //Configure digital poort 8 as output
+  pinMode(9, OUTPUT); //Configure digital poort 9 as output
 
   pinMode(13, OUTPUT); //Configure digital poort 13 as output
 
-  for (receive_counter = 0; receive_counter < 500; receive_counter++)
-  { //Create 500 loops
+  for (receive_counter = 0; receive_counter < calibration_loops; receive_counter++)
+  { 
+    //Create calibration_loops loops
     if (receive_counter % 15 == 0)
       digitalWrite(13, !digitalRead(13));                           //Change the state of the LED every 15 loops to make the LED blink fast
     Wire.beginTransmission(gyro_address);                           //Start communication with the gyro
@@ -101,12 +107,11 @@ void setup()
     Wire.requestFrom(gyro_address, 4);                              //Request 2 bytes from the gyro
     gyro_yaw_calibration_value += Wire.read() << 8 | Wire.read();   //Combine the two bytes to make one integer
     gyro_pitch_calibration_value += Wire.read() << 8 | Wire.read(); //Combine the two bytes to make one integer
-    delayMicroseconds(3700);                                        //Wait for 3700 microseconds to simulate the main program loop time
+    delayMicroseconds(loop_time-300);                                        //Wait for 3700 microseconds to simulate the main program loop time
   }
-  gyro_pitch_calibration_value /= 500; //Divide the total value by 500 to get the avarage gyro offset
-  gyro_yaw_calibration_value /= 500;   //Divide the total value by 500 to get the avarage gyro offset
-
-  loop_timer = micros() + 4000; //Set the loop_timer variable at the next end loop time
+  gyro_pitch_calibration_value /= calibration_loops; //Divide the total value by 500 to get the avarage gyro offset
+  gyro_yaw_calibration_value /= calibration_loops;   //Divide the total value by 500 to get the avarage gyro offset
+  loop_timer = micros() + loop_time; //Set the loop_timer variable at the next end loop time
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -122,18 +127,17 @@ void loop()
   if (receive_counter <= 25)
     receive_counter++; //The received byte will be valid for 25 program loops (100 milliseconds)
   else
-    received_byte = 0x00; //After 100 milliseconds the received byte is deleted
+    received_byte = 0x00; //After 100 (25 * loop_time) milliseconds the received byte is deleted
 
   //Load the battery voltage to the battery_voltage variable.
-  //85 is the voltage compensation for the diode.
+  //diode_voltage_compensation is the voltage compensation for the diode.
   //Resistor voltage divider => (2k + 1k)/1k = 3
   //15V equals ~5V @ Analog 0.
   //15V equals 1023 analogRead(0).
   //1500 / 1023 = 1.466.
   //The variable battery_voltage holds 1050 if the battery voltage is 10.5V.
-  battery_voltage = (analogRead(0) * 1.466) + 85;
-
-  if (battery_voltage < 1050 && battery_voltage > 800)
+  battery_voltage = (analogRead(0) * 1.466) + diode_voltage_compensation;
+  if (battery_voltage < battery_low_threshold)
   {                         //If batteryvoltage is below 10.5V and higher than 8.0V
     digitalWrite(13, HIGH); //Turn on the led if battery voltage is too low
     low_bat = 1;            //Set the low_bat variable to 1
@@ -143,38 +147,41 @@ void loop()
   //Angle calculations
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   Wire.beginTransmission(gyro_address);                    //Start communication with the gyro
-  Wire.write(0x3F);                                        //Start reading at register 3F
+  Wire.write(0x3F);                                        //Start reading at register 0x3F
   Wire.endTransmission();                                  //End the transmission
-  Wire.requestFrom(gyro_address, 2);                       //Request 2 bytes from the gyro
+  Wire.requestFrom(gyro_address, 2);                       //Request 2 bytes from the gyro, ACCEL_ZOUT_H ACCEL_ZOUT_L
   accelerometer_data_raw = Wire.read() << 8 | Wire.read(); //Combine the two bytes to make one integer
   accelerometer_data_raw += acc_calibration_value;         //Add the accelerometer calibration value
-  if (accelerometer_data_raw > 8200)
-    accelerometer_data_raw = 8200; //Prevent division by zero by limiting the acc data to +/-8200;
-  if (accelerometer_data_raw < -8200)
-    accelerometer_data_raw = -8200; //Prevent division by zero by limiting the acc data to +/-8200;
+  if (accelerometer_data_raw > acc_raw_limit)
+    accelerometer_data_raw = acc_raw_limit; //Prevent division by zero by limiting the acc data to +/-acc_raw_limit;
+  if (accelerometer_data_raw < -acc_raw_limit)
+    accelerometer_data_raw = -acc_raw_limit; //Prevent division by zero by limiting the acc data to +/-acc_raw_limit;
 
-  angle_acc = asin((float)accelerometer_data_raw / 8200.0) * 57.296; //Calculate the current angle according to the accelerometer
+  angle_acc = asin((float)accelerometer_data_raw / acc_raw_limit) * 57.296; //Calculate the current angle according to the accelerometer
 
   if (start == 0 && angle_acc > -0.5 && angle_acc < 0.5)
-  {                         //If the accelerometer angle is almost 0
+  {
+                            //If the accelerometer angle is almost 0
     angle_gyro = angle_acc; //Load the accelerometer angle in the angle_gyro variable
     start = 1;              //Set the start variable to start the PID controller
   }
 
   Wire.beginTransmission(gyro_address);                 //Start communication with the gyro
-  Wire.write(0x43);                                     //Start reading at register 43
+  Wire.write(0x43);                                     //Start reading at register 0x43
   Wire.endTransmission();                               //End the transmission
-  Wire.requestFrom(gyro_address, 4);                    //Request 4 bytes from the gyro
+  Wire.requestFrom(gyro_address, 4);                    //Request 4 bytes from the gyro, GYRO_XOUT_H, GYRO_XOUT_L, GYRO_YOUT_H, GYRO_YOUT_L
   gyro_yaw_data_raw = Wire.read() << 8 | Wire.read();   //Combine the two bytes to make one integer
   gyro_pitch_data_raw = Wire.read() << 8 | Wire.read(); //Combine the two bytes to make one integer
 
   gyro_pitch_data_raw -= gyro_pitch_calibration_value; //Add the gyro calibration value
-  angle_gyro += gyro_pitch_data_raw * 0.000031;        //Calculate the traveled during this loop angle and add this to the angle_gyro variable
+                                                       // 500°/s / 2^16 * loop_time = 0.00762939453125 * loop_time
+  angle_gyro += gyro_pitch_data_raw * 0.0076294 * loop_time / 1000000;        //Calculate the traveled during this loop angle and add this to the angle_gyro variable
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //MPU-6050 offset compensation
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //Not every gyro is mounted 100% level with the axis of the robot. This can be cause by misalignments during manufacturing of the breakout board.
+  //Not every gyro is mounted 100% level with the axis of the robot. 
+  //This can be caused by misalignments during manufacturing of the breakout board.
   //As a result the robot will not rotate at the exact same spot and start to make larger and larger circles.
   //To compensate for this behavior a VERY SMALL angle compensation is needed when the robot is rotating.
   //Try 0.0000003 or -0.0000003 first to see if there is any improvement.
@@ -308,10 +315,10 @@ void loop()
   //Loop time timer
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //The angle calculations are tuned for a loop time of 4 milliseconds. To make sure every loop is exactly 4 milliseconds a wait loop
-  //is created by setting the loop_timer variable to +4000 microseconds every loop.
+  //is created by setting the loop_timer variable to +loop_time microseconds every loop.
   while (loop_timer > micros())
     ;
-  loop_timer += 4000;
+  loop_timer += loop_time;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
