@@ -1,0 +1,6 @@
+{
+    "board": "arduino:avr:pro",
+    "port": "/dev/cu.usbserial-A70234SO",
+    "sketch": "Stepper_Test.ino",
+    "configuration": "cpu=16MHzatmega328"
+}
