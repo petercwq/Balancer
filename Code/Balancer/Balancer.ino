@@ -12,6 +12,8 @@
 
 #include <Wire.h> //Include the Wire.h library so we can communicate with the gyro
 #include <Stepper.h>
+#include "AccelStepper.h"
+#include "MultiStepper.h"
 
 int gyro_address = 0x68;          //MPU-6050 I2C address (0x68 or 0x69)
 int acc_calibration_value = 1000; //Enter the accelerometer calibration value
