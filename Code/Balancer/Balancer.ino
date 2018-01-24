@@ -11,8 +11,15 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include <Wire.h> //Include the Wire.h library so we can communicate with the gyro
-#include "AccelStepper.h"
-#include "MultiStepper.h"
+// #include "AccelStepper.h"
+// #include "MultiStepper.h"
+#include <Stepper.h>
+
+const int battery_low_threshold = 1050, diode_voltage_compensation = 83;
+const int loop_time = 4000;
+const int calibration_loops = 500;
+const int acc_raw_limit = 8200;
+const int stepsPerRevolution = 200;  // change this to fit the number of steps per revolution
 
 int gyro_address = 0x68;          //MPU-6050 I2C address (0x68 or 0x69)
 int acc_calibration_value = 1000; //Enter the accelerometer calibration value
@@ -24,22 +31,20 @@ float pid_d_gain = 30;        //Gain setting for the D-controller (30)
 float turning_speed = 30;     //Turning speed (20)
 float max_target_speed = 150; //Max target speed (100)
 
-const int battery_low_threshold = 1050, diode_voltage_compensation = 83;
-const int loop_time = 4000;
-const int calibration_loops = 500;
-const int acc_raw_limit = 8200;
-const int stepsPerRevolution = 200;  // change this to fit the number of steps per revolution
+// AccelStepper stepperL(AccelStepper::FULL4WIRE, 2, 3, 4, 5);
+// AccelStepper stepperR(AccelStepper::FULL4WIRE, 6, 7, 8, 9);
 
-AccelStepper leftStepper(AccelStepper::FULL4WIRE, 2, 3, 4, 5);
-AccelStepper rightStepper(AccelStepper::FULL4WIRE, 6, 7, 8, 9);
+Stepper stepperL(stepsPerRevolution, 2, 3, 4, 5);
+Stepper stepperR(stepsPerRevolution, 6, 7, 8, 9);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Declaring global variables
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 byte start, received_byte, low_bat;
 
-int left_motor, throttle_left_motor, left_counter;
-int right_motor, throttle_right_motor, right_counter;
+int left_motor, throttle_left_motor, throttle_counter_left_motor, throttle_left_motor_memory;
+int right_motor, throttle_right_motor, throttle_counter_right_motor, throttle_right_motor_memory;
+
 int battery_voltage;
 int receive_counter;
 int gyro_pitch_data_raw, gyro_yaw_data_raw, accelerometer_data_raw;
@@ -114,9 +119,6 @@ void setup()
   Serial.println(gyro_pitch_calibration_value);
   Serial.print("gyro_yaw_calibration_value:");
   Serial.println(gyro_yaw_calibration_value);
-
-  leftStepper.setSpeed(300);
-  rightStepper.setSpeed(300);
   
   loop_timer = micros() + loop_time; //Set the loop_timer variable at the next end loop time
 }
@@ -311,8 +313,8 @@ void loop()
     right_motor = 0;
 
   //Copy the pulse time to the throttle variables so the interrupt subroutine can use them
-  throttle_left_motor += left_motor;
-  throttle_right_motor += right_motor;
+  throttle_left_motor = left_motor;
+  throttle_right_motor = right_motor;
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //Loop time timer
@@ -329,37 +331,21 @@ void loop()
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ISR(TIMER2_COMPA_vect)
 {
-  if(throttle_left_motor > 0 && left_counter%5000==0)
-  {
-    leftStepper.step(1);
-    throttle_left_motor-=left_counter;
-    left_counter++;
+  //Left motor pulse calculations
+  throttle_counter_left_motor ++;                                           //Increase the throttle_counter_left_motor variable by 1 every time this routine is executed
+  if(throttle_counter_left_motor > abs(throttle_left_motor_memory)){             //If the number of loops is larger then the throttle_left_motor_memory variable
+    throttle_counter_left_motor = 0;                                        //Reset the throttle_counter_left_motor variable
+    throttle_left_motor_memory = throttle_left_motor;                       //Load the next throttle_left_motor variable
   }
-  else if(throttle_left_motor < 0 && left_counter%5000==0)
-  {
-    leftStepper.step(-1);
-    throttle_left_motor+=left_counter;
-    left_counter++;
-  }
-  else
-  {
-    left_counter=0;
-  }
+  else if(throttle_counter_left_motor == 1)
+    stepperL.step(throttle_left_motor_memory > 0 ? 1 : -1);
 
-  if(throttle_right_motor > 0 && right_counter%5000==0)
-  {
-    rightStepper.step(1);
-    throttle_right_motor-=right_counter;
-    right_counter++;
+  //right motor pulse calculations
+  throttle_counter_right_motor ++;                                          //Increase the throttle_counter_right_motor variable by 1 every time the routine is executed
+  if(throttle_counter_right_motor > abs(throttle_right_motor_memory)){           //If the number of loops is larger then the throttle_right_motor_memory variable
+    throttle_counter_right_motor = 0;                                       //Reset the throttle_counter_right_motor variable
+    throttle_right_motor_memory = throttle_right_motor;                   //Set output 5 high for a forward direction of the stepper motor
   }
-  else if(throttle_right_motor < 0 && right_counter%5000==0)
-  {
-    rightStepper.step(-1);
-    throttle_right_motor+=right_counter;
-    right_counter++;
-  }
-  else
-  {
-    right_counter=0;
-  }
+  else if(throttle_counter_right_motor == 1)
+    stepperR.step(throttle_right_motor_memory > 0 ? 1 : -1); 
 }
