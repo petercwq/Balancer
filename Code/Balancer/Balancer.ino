@@ -5,8 +5,7 @@ const int battery_low_threshold = 1050, diode_voltage_compensation = 83;
 const unsigned long angle_loop_time = 4000, voltage_loop_time = 5000000;
 const int calibration_loops = 500;
 const int acc_raw_limit = 8200;
-const int motor_speed = 200;
-const int motor_interval = 5000;
+const int motor_interval = 10000;
 const int gyro_address = 0x68; //MPU-6050 I2C address (0x68 or 0x69)
 
 //Various settings
