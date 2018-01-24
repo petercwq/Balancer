@@ -11,9 +11,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include <Wire.h> //Include the Wire.h library so we can communicate with the gyro
-// #include "AccelStepper.h"
+#include "AccelStepper.h"
 // #include "MultiStepper.h"
-#include <Stepper.h>
+#include "MsTimer2.h"
 
 const int battery_low_threshold = 1050, diode_voltage_compensation = 83;
 const int loop_time = 4000;
@@ -31,11 +31,8 @@ float pid_d_gain = 30;        //Gain setting for the D-controller (30)
 float turning_speed = 30;     //Turning speed (20)
 float max_target_speed = 150; //Max target speed (100)
 
-// AccelStepper stepperL(AccelStepper::FULL4WIRE, 2, 3, 4, 5);
-// AccelStepper stepperR(AccelStepper::FULL4WIRE, 6, 7, 8, 9);
-
-Stepper stepperL(stepsPerRevolution, 2, 3, 4, 5);
-Stepper stepperR(stepsPerRevolution, 6, 7, 8, 9);
+AccelStepper stepperL(AccelStepper::FULL4WIRE, 2, 3, 4, 5);
+AccelStepper stepperR(AccelStepper::FULL4WIRE, 6, 7, 8, 9);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Declaring global variables
@@ -65,15 +62,6 @@ void setup()
   Serial.println("---begin setup---");
   Wire.begin();       //Start the I2C bus as master
   TWBR = 12;          //Set the I2C clock speed to 400kHz
-
-  //To create a variable pulse for controlling the stepper motors a timer is created that will execute a piece of code (subroutine) every 20us
-  //This subroutine is called TIMER2_COMPA_vect
-  TCCR2A = 0;              //Make sure that the TCCR2A register is set to zero
-  TCCR2B = 0;              //Make sure that the TCCR2A register is set to zero
-  TIMSK2 |= (1 << OCIE2A); //Set the interupt enable bit OCIE2A in the TIMSK2 register
-  TCCR2B |= (1 << CS21);   //Set the CS21 bit in the TCCRB register to set the prescaler to 8
-  OCR2A = 39;              //The compare register is set to 39 => 20us / (1s / (16.000.000MHz / 8)) - 1
-  TCCR2A |= (1 << WGM21);  //Set counter 2 to CTC (clear timer on compare) mode
 
   //By default the MPU-6050 sleeps. So we have to wake it up.
   Wire.beginTransmission(gyro_address); //Start communication with the address found during search.
@@ -120,6 +108,15 @@ void setup()
   Serial.print("gyro_yaw_calibration_value:");
   Serial.println(gyro_yaw_calibration_value);
   
+  stepperL.setMaxSpeed(1000);
+  stepperR.setMaxSpeed(1000);
+
+  stepperL.setSpeed(1000);
+  stepperR.setSpeed(1000);
+
+  MsTimer2::set(1, run); // 1ms period
+  MsTimer2::start();
+
   loop_timer = micros() + loop_time; //Set the loop_timer variable at the next end loop time
 }
 
@@ -329,23 +326,42 @@ void loop()
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Interrupt routine  TIMER2_COMPA_vect
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-ISR(TIMER2_COMPA_vect)
+void run()
 {
   //Left motor pulse calculations
-  throttle_counter_left_motor ++;                                           //Increase the throttle_counter_left_motor variable by 1 every time this routine is executed
-  if(throttle_counter_left_motor > abs(throttle_left_motor_memory)){             //If the number of loops is larger then the throttle_left_motor_memory variable
+  throttle_counter_left_motor +=50;                                           //Increase the throttle_counter_left_motor variable by 1 every time this routine is executed
+  if(throttle_counter_left_motor > throttle_left_motor_memory){             //If the number of loops is larger then the throttle_left_motor_memory variable
     throttle_counter_left_motor = 0;                                        //Reset the throttle_counter_left_motor variable
     throttle_left_motor_memory = throttle_left_motor;                       //Load the next throttle_left_motor variable
+    if(throttle_left_motor_memory<0)
+    {
+      throttle_left_motor_memory = -throttle_left_motor_memory;
+      stepperL.setSpeed(-200);
+    }
+    else
+    {
+      stepperL.setSpeed(200);
+    }
   }
-  else if(throttle_counter_left_motor == 1)
-    stepperL.step(throttle_left_motor_memory > 0 ? 1 : -1);
 
   //right motor pulse calculations
-  throttle_counter_right_motor ++;                                          //Increase the throttle_counter_right_motor variable by 1 every time the routine is executed
-  if(throttle_counter_right_motor > abs(throttle_right_motor_memory)){           //If the number of loops is larger then the throttle_right_motor_memory variable
+  throttle_counter_right_motor +=50;                                          //Increase the throttle_counter_right_motor variable by 1 every time the routine is executed
+  if(throttle_counter_right_motor > throttle_right_motor_memory){           //If the number of loops is larger then the throttle_right_motor_memory variable
     throttle_counter_right_motor = 0;                                       //Reset the throttle_counter_right_motor variable
     throttle_right_motor_memory = throttle_right_motor;                   //Set output 5 high for a forward direction of the stepper motor
+    if(throttle_right_motor_memory<0)
+    {
+      throttle_right_motor_memory = -throttle_right_motor_memory;
+      stepperR.setSpeed(200);
+    }
+    else
+    {
+      stepperR.setSpeed(-200);
+    }
   }
-  else if(throttle_counter_right_motor == 1)
-    stepperR.step(throttle_right_motor_memory > 0 ? 1 : -1); 
+  
+  if(throttle_left_motor_memory!=0)
+    stepperL.runSpeed();
+  if(throttle_right_motor_memory!=0)
+    stepperR.runSpeed();
 }
