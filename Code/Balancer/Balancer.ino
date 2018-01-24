@@ -11,7 +11,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include <Wire.h> //Include the Wire.h library so we can communicate with the gyro
-#include <Stepper.h>
 #include "AccelStepper.h"
 #include "MultiStepper.h"
 
@@ -31,8 +30,8 @@ const int calibration_loops = 500;
 const int acc_raw_limit = 8200;
 const int stepsPerRevolution = 200;  // change this to fit the number of steps per revolution
 
-Stepper leftStepper(stepsPerRevolution, 2, 3, 4, 5);
-Stepper rightStepper(stepsPerRevolution, 6, 7, 8, 9);
+AccelStepper leftStepper(AccelStepper::FULL4WIRE, 2, 3, 4, 5);
+AccelStepper rightStepper(AccelStepper::FULL4WIRE, 6, 7, 8, 9);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Declaring global variables
