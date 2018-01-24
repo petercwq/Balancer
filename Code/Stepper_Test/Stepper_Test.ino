@@ -26,25 +26,15 @@ Stepper myStepper2(stepsPerRevolution, 2, 3, 4, 5);
 
 
 void setup() {
-  // set the speed at 60 rpm:
-  myStepper1.setSpeed(90);
-  myStepper2.setSpeed(90);
-
   // initialize the serial port:
-  Serial.begin(9600);
+  Serial.begin(115200);
 }
 
 void loop() {
-  // step one revolution  in one direction:
-  Serial.println("clockwise");
-  myStepper1.step(stepsPerRevolution*90);
-  myStepper2.step(stepsPerRevolution*90);
-  delay(500);
-
-  // step one revolution in the other direction:
-  Serial.println("counterclockwise");
-  myStepper1.step(-stepsPerRevolution);
-  myStepper2.step(-stepsPerRevolution);
-  delay(500);
+  unsigned long t = micros();
+  myStepper1.step(1);
+  myStepper2.step(1);
+  Serial.println(micros()-t);
+  delay(2);
 }
 
