@@ -1,11 +1,12 @@
 #include <Wire.h> //Include the Wire.h library so we can communicate with the gyro
-#include "AccelStepper.h"
+#include <Stepper.h>
 
 const int battery_low_threshold = 1050, diode_voltage_compensation = 83;
 const unsigned long angle_loop_time = 4000, voltage_loop_time = 5000000;
 const int calibration_loops = 500;
 const int acc_raw_limit = 8200;
 const int motor_speed = 200;
+const int motor_interval = 5000;
 const int gyro_address = 0x68; //MPU-6050 I2C address (0x68 or 0x69)
 
 //Various settings
@@ -15,20 +16,20 @@ float pid_d_gain = 30;        //Gain setting for the D-controller (30)
 float turning_speed = 30;     //Turning speed (20)
 float max_target_speed = 150; //Max target speed (100)
 
-unsigned long last_angle_loop_time, last_voltage_loop_time, left_motor_start_time, right_motor_start_time;
-
+unsigned long last_angle_loop_time, last_voltage_loop_time, left_motor_start_time, right_motor_start_time, left_step_time, right_step_time;
+unsigned long time;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Declaring global variables
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 byte start, received_byte, low_bat;
 
-int left_motor, throttle_left_motor, throttle_left_motor_memory;
-int right_motor, throttle_right_motor, throttle_right_motor_memory;
+int left_motor, throttle_left_motor, throttle_left_motor_memory, left_step;
+int right_motor, throttle_right_motor, throttle_right_motor_memory, right_step;
 
-AccelStepper stepperL(AccelStepper::FULL4WIRE, 2, 3, 4, 5);
-AccelStepper stepperR(AccelStepper::FULL4WIRE, 6, 7, 8, 9);
-// Stepper stepperL(stepsPerRevolution, 2, 3, 4, 5);
-// Stepper stepperR(stepsPerRevolution, 6, 7, 8, 9);
+// AccelStepper stepperL(AccelStepper::FULL4WIRE, 2, 3, 4, 5);
+// AccelStepper stepperR(AccelStepper::FULL4WIRE, 6, 7, 8, 9);
+Stepper stepperL(200, 2, 3, 4, 5);
+Stepper stepperR(200, 6, 7, 8, 9);
 
 int battery_voltage;
 int receive_counter;
@@ -102,9 +103,6 @@ void setup()
   Serial.println(gyro_yaw_calibration_value);
   Serial.print("acc_calibration_value:");
   Serial.println(acc_calibration_value);
-
-  stepperL.setMaxSpeed(1000);
-  stepperR.setMaxSpeed(1000);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -151,24 +149,31 @@ void loop()
     if (throttle_left_motor_memory < 0)
     {
       throttle_left_motor_memory = -throttle_left_motor_memory;
-      stepperL.setSpeed(-motor_speed);
+      left_step = -1;
     }
     else if (throttle_left_motor_memory > 0)
     {
-      stepperL.setSpeed(motor_speed);
+      left_step = 1;
     }
     else
     {
-      stepperL.setSpeed(0);
+      left_step = 0;
     }
     left_motor_start_time = t;
+    left_step_time = 0;
   }
-  else
+  
+  if (t - left_step_time > motor_interval)
   {
-    stepperL.runSpeed();
+    stepperL.step(left_step);
+    left_step_time=t;
   }
+
+#if DEBUG
+  time = micros() - t;
   Serial.print("left_motor takes: ");
-  Serial.println(micros() - t);
+  Serial.println(time);
+#endif
 
   t = micros();
   if (t - right_motor_start_time > throttle_right_motor_memory)
@@ -177,24 +182,31 @@ void loop()
     if (throttle_right_motor_memory < 0)
     {
       throttle_right_motor_memory = -throttle_right_motor_memory;
-      stepperR.setSpeed(motor_speed);
+      right_step = 1;
     }
     else if (throttle_right_motor_memory > 0)
     {
-      stepperR.setSpeed(-motor_speed);
+      right_step = -1;
     }
     else
     {
-      stepperR.setSpeed(0);
+      right_step = 0;
     }
     right_motor_start_time = t;
+    right_step_time = 0;
   }
-  else
+  
+  if (t - right_step_time > motor_interval)
   {
-    stepperR.runSpeed();
+    stepperR.step(right_step);
+    right_step_time = t;
   }
+
+#if DEBUG
+  time = micros() - t;
   Serial.print("right_motor takes: ");
-  Serial.println(micros() - t);
+  Serial.println(time);
+#endif
 
   t = micros();
   if (t - last_angle_loop_time > angle_loop_time)
@@ -229,7 +241,7 @@ void loop()
 
     gyro_pitch_data_raw -= gyro_pitch_calibration_value;                       //Add the gyro calibration value
                                                                                // 500°/s / 2^16 * angle_loop_time = 0.00762939453125 * angle_loop_time
-    angle_gyro += gyro_pitch_data_raw * 0.0076294 * angle_loop_time / 1000000; //Calculate the traveled during this loop angle and add this to the angle_gyro variable
+    angle_gyro += gyro_pitch_data_raw * 0.0076294 * (float)(t - last_angle_loop_time) / 1000000.0; //Calculate the traveled during this loop angle and add this to the angle_gyro variable
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //MPU-6050 offset compensation
@@ -360,14 +372,16 @@ void loop()
     //Copy the pulse time to the throttle variables so the interrupt subroutine can use them
     throttle_left_motor = left_motor * 20;   // 20 us
     throttle_right_motor = right_motor * 20; // 20 us
-
+#if DEBUG
+    time = micros() - t;
     Serial.print("left_motor:");
     Serial.println(left_motor);
     Serial.print("right_motor:");
     Serial.println(right_motor);
 
     Serial.print("angle calculation takes: ");
-    Serial.println(micros() - t);
+    Serial.println(time);
+#endif
     last_angle_loop_time = t;
   }
 }
