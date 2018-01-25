@@ -5,7 +5,8 @@ const int battery_low_threshold = 1050, diode_voltage_compensation = 83;
 const unsigned long angle_loop_time = 4000, voltage_loop_time = 5000000;
 const int calibration_loops = 500;
 const int acc_raw_limit = 8200;
-const int motor_interval = 10000;
+const int motor_interval = 500;
+const int motor_speed = 90; // rpms
 const int gyro_address = 0x68; //MPU-6050 I2C address (0x68 or 0x69)
 
 //Various settings
@@ -95,6 +96,9 @@ void setup()
   gyro_pitch_calibration_value /= calibration_loops; //Divide the total value by 500 to get the avarage gyro offset
   gyro_yaw_calibration_value /= calibration_loops;   //Divide the total value by 500 to get the avarage gyro offset
   acc_calibration_value /= calibration_loops;
+
+  stepperL.setSpeed(motor_speed);
+  stepperR.setSpeed(motor_speed);
 
   Serial.print("gyro_pitch_calibration_value:");
   Serial.println(gyro_pitch_calibration_value);
