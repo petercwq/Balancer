@@ -5,8 +5,8 @@ const int battery_low_threshold = 1050, diode_voltage_compensation = 83;
 const unsigned long angle_loop_time = 4000, voltage_loop_time = 5000000;
 const int calibration_loops = 500;
 const int acc_raw_limit = 8200;
-const int motor_interval = 500;
-const int motor_speed = 90; // rpms
+// const int motor_interval = 500;
+const int motor_speed = 90;    // rpms
 const int gyro_address = 0x68; //MPU-6050 I2C address (0x68 or 0x69)
 
 //Various settings
@@ -16,7 +16,7 @@ float pid_d_gain = 30;        //Gain setting for the D-controller (30)
 float turning_speed = 30;     //Turning speed (20)
 float max_target_speed = 150; //Max target speed (100)
 
-unsigned long last_angle_loop_time, last_voltage_loop_time, left_motor_start_time, right_motor_start_time, left_step_time, right_step_time;
+unsigned long last_angle_loop_time, last_voltage_loop_time, left_motor_start_time, right_motor_start_time;
 unsigned long time;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Declaring global variables
@@ -163,14 +163,9 @@ void loop()
       left_step = 0;
     }
     left_motor_start_time = t;
-    left_step_time = 0;
   }
-  
-  if (t - left_step_time > motor_interval)
-  {
-    stepperL.step(left_step);
-    left_step_time=t;
-  }
+
+  stepperL.step(left_step);
 
 #if DEBUG
   time = micros() - t;
@@ -196,14 +191,9 @@ void loop()
       right_step = 0;
     }
     right_motor_start_time = t;
-    right_step_time = 0;
   }
-  
-  if (t - right_step_time > motor_interval)
-  {
-    stepperR.step(right_step);
-    right_step_time = t;
-  }
+
+  stepperR.step(right_step);
 
 #if DEBUG
   time = micros() - t;
@@ -242,8 +232,8 @@ void loop()
     gyro_yaw_data_raw = Wire.read() << 8 | Wire.read();   //Combine the two bytes to make one integer
     gyro_pitch_data_raw = Wire.read() << 8 | Wire.read(); //Combine the two bytes to make one integer
 
-    gyro_pitch_data_raw -= gyro_pitch_calibration_value;                       //Add the gyro calibration value
-                                                                               // 500°/s / 2^16 * angle_loop_time = 0.00762939453125 * angle_loop_time
+    gyro_pitch_data_raw -= gyro_pitch_calibration_value;                                           //Add the gyro calibration value
+                                                                                                   // 500°/s / 2^16 * angle_loop_time = 0.00762939453125 * angle_loop_time
     angle_gyro += gyro_pitch_data_raw * 0.0076294 * (float)(t - last_angle_loop_time) / 1000000.0; //Calculate the traveled during this loop angle and add this to the angle_gyro variable
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
