@@ -23,8 +23,8 @@ unsigned long time;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 byte start, received_byte, low_bat;
 
-int left_motor, throttle_left_motor, throttle_left_motor_memory, left_step;
-int right_motor, throttle_right_motor, throttle_right_motor_memory, right_step;
+int left_motor, throttle_left_motor, throttle_left_motor_memory;
+int right_motor, throttle_right_motor, throttle_right_motor_memory;
 
 // AccelStepper stepperL(AccelStepper::FULL4WIRE, 2, 3, 4, 5);
 // AccelStepper stepperR(AccelStepper::FULL4WIRE, 6, 7, 8, 9);
@@ -146,62 +146,6 @@ void loop()
   }
 
   t = micros();
-  if (t - left_motor_start_time > throttle_left_motor_memory)
-  {
-    throttle_left_motor_memory = throttle_left_motor;
-    if (throttle_left_motor_memory < 0)
-    {
-      throttle_left_motor_memory = -throttle_left_motor_memory;
-      left_step = -1;
-    }
-    else if (throttle_left_motor_memory > 0)
-    {
-      left_step = 1;
-    }
-    else
-    {
-      left_step = 0;
-    }
-    left_motor_start_time = t;
-  }
-
-  stepperL.step(left_step);
-
-#if DEBUG
-  time = micros() - t;
-  Serial.print("left_motor takes: ");
-  Serial.println(time);
-#endif
-
-  t = micros();
-  if (t - right_motor_start_time > throttle_right_motor_memory)
-  {
-    throttle_right_motor_memory = throttle_right_motor;
-    if (throttle_right_motor_memory < 0)
-    {
-      throttle_right_motor_memory = -throttle_right_motor_memory;
-      right_step = 1;
-    }
-    else if (throttle_right_motor_memory > 0)
-    {
-      right_step = -1;
-    }
-    else
-    {
-      right_step = 0;
-    }
-    right_motor_start_time = t;
-  }
-
-  stepperR.step(right_step);
-
-#if DEBUG
-  time = micros() - t;
-  Serial.print("right_motor takes: ");
-  Serial.println(time);
-#endif
-
-  t = micros();
   if (t - last_angle_loop_time > angle_loop_time)
   {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -235,6 +179,7 @@ void loop()
     gyro_pitch_data_raw -= gyro_pitch_calibration_value;                                           //Add the gyro calibration value
                                                                                                    // 500°/s / 2^16 * angle_loop_time = 0.00762939453125 * angle_loop_time
     angle_gyro += gyro_pitch_data_raw * 0.0076294 * (float)(t - last_angle_loop_time) / 1000000.0; //Calculate the traveled during this loop angle and add this to the angle_gyro variable
+    last_angle_loop_time = t;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //MPU-6050 offset compensation
@@ -375,6 +320,49 @@ void loop()
     Serial.print("angle calculation takes: ");
     Serial.println(time);
 #endif
-    last_angle_loop_time = t;
+
+    t = micros();
+    if (t - left_motor_start_time > throttle_left_motor_memory)
+    {
+      left_motor_start_time = t;
+      throttle_left_motor_memory = throttle_left_motor;
+      if (throttle_left_motor_memory < 0)
+      {
+        throttle_left_motor_memory = -throttle_left_motor_memory;
+        stepperL.step(-1);
+      }
+      else if (throttle_left_motor_memory > 0)
+      {
+        stepperL.step(1);
+      }
+    }
+
+#if DEBUG
+    time = micros() - t;
+    Serial.print("left_motor takes: ");
+    Serial.println(time);
+#endif
+
+    t = micros();
+    if (t - right_motor_start_time > throttle_right_motor_memory)
+    {
+      right_motor_start_time = t;
+      throttle_right_motor_memory = throttle_right_motor;
+      if (throttle_right_motor_memory < 0)
+      {
+        throttle_right_motor_memory = -throttle_right_motor_memory;
+        stepperR.step(1);
+      }
+      else if (throttle_right_motor_memory > 0)
+      {
+        stepperR.step(-1);
+      }
+    }
+
+#if DEBUG
+    time = micros() - t;
+    Serial.print("right_motor takes: ");
+    Serial.println(time);
+#endif
   }
 }
