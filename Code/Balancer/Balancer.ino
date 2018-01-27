@@ -10,11 +10,12 @@ const int acc_raw_limit = 8200;
 // const int motor_interval = 500;
 const int motor_speed = 90;    // rpms
 const int gyro_address = 0x68; //MPU-6050 I2C address (0x68 or 0x69)
+const int dead_band = 5;
 
 //Various settings
-float pid_p_gain = 30;        //Gain setting for the P-controller (15)
+float pid_p_gain = 20;        //Gain setting for the P-controller (15)
 float pid_i_gain = 0.2;       //Gain setting for the I-controller (1.5)
-float pid_d_gain = 60;        //Gain setting for the D-controller (30)
+float pid_d_gain = 30;        //Gain setting for the D-controller (30)
 float turning_speed = 30;     //Turning speed (20)
 float max_target_speed = 150; //Max target speed (100)
 
@@ -241,7 +242,7 @@ void loop()
 
   pid_last_d_error = pid_error_temp; //Store the error for the next loop
 
-  if (pid_output < 5 && pid_output > -5)
+  if (pid_output < dead_band && pid_output > -dead_band)
     pid_output = 0; //Create a dead-band to stop the motors when the robot is balanced
 
   if (angle_gyro > 30 || angle_gyro < -30 || start == 0 || low_bat == 1)
