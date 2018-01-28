@@ -1,10 +1,12 @@
 ﻿using System;
+
 namespace FormsJoystick.Communication
 {
-    public class IBluetoothCom
+    public interface IBluetoothCom
     {
-        public IBluetoothCom()
-        {
-        }
+        bool FindDevice(string deviceName);
+        bool Connect();
+        void Close();
+        bool SendData(byte command);
     }
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <merge xmlns:android="http://schemas.android.com/apk/res/android">
-  <com.esamsherif.formsjoystick.FormsJoystick.Droid.JoystickAndroidCustomControl.SquareLinearLayout
-      android:background="@drawable/pad"
+    <com.esamsherif.formsjoystick.FormsJoystick.Droid.JoystickAndroidCustomControl.SquareLinearLayout
+        android:background="@drawable/pad"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center_vertical|center_horizontal"

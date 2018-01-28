@@ -7,7 +7,7 @@ using Xamarin.Forms;
 
 namespace FormsJoystick.Views
 {
-	public partial class MainPage : ContentPage
+    public partial class MainPage : PageViewBase
 	{
 		public MainPage()
 		{

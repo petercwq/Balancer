@@ -8,16 +8,16 @@ const unsigned long loop_time = 4000, voltage_loop_time = 5000000;
 const int calibration_loops = 500;
 const int acc_raw_limit = 8200;
 // const int motor_interval = 500;
-const int motor_speed = 100;   // rpms
+const int motor_speed = 200;   // rpms
 const int gyro_address = 0x68; //MPU-6050 I2C address (0x68 or 0x69)
 const int dead_band = 5;
 
 //Various settings
 float pid_p_gain = 11;        //Gain setting for the P-controller (15)
-float pid_i_gain = 1;         //Gain setting for the I-controller (1.5)
-float pid_d_gain = 18;        //Gain setting for the D-controller (30)
-float turning_speed = 30;     //Turning speed (20)
-float max_target_speed = 150; //Max target speed (100)
+float pid_i_gain = 0.5;         //Gain setting for the I-controller (1.5)
+float pid_d_gain = 25;        //Gain setting for the D-controller (30)
+float turning_speed = 40;     //Turning speed (20)
+float max_target_speed = 120; //Max target speed (100)
 
 unsigned long time, next_loop_time, last_voltage_loop_time; //, left_motor_start_time, right_motor_start_time;
 unsigned long gyro_timer;
@@ -38,7 +38,7 @@ Stepper stepperR(200, 8, 9, 10, 12);
 int battery_voltage;
 int receive_counter;
 int gyro_pitch_data_raw, gyro_yaw_data_raw, accelerometer_data_raw;
-long gyro_yaw_calibration_value, gyro_pitch_calibration_value, acc_calibration_value = -138;
+long gyro_yaw_calibration_value, gyro_pitch_calibration_value, acc_calibration_value = -200;
 
 float angle_gyro, angle_acc, angle, self_balance_pid_setpoint;
 float pid_error_temp, pid_i_mem, pid_setpoint, gyro_input, pid_output, pid_last_d_error;
@@ -264,14 +264,14 @@ void loop()
 
   if (received_byte & B00000100)
   { //If the third bit of the receive byte is set change the left and right variable to turn the robot to the right
-    if (pid_setpoint > -2.5)
+    if (pid_setpoint > -2)
       pid_setpoint -= 0.05; //Slowly change the setpoint angle so the robot starts leaning forewards
     if (pid_output > max_target_speed * -1)
       pid_setpoint -= 0.005; //Slowly change the setpoint angle so the robot starts leaning forewards
   }
   if (received_byte & B00001000)
   { //If the forth bit of the receive byte is set change the left and right variable to turn the robot to the right
-    if (pid_setpoint < 2.5)
+    if (pid_setpoint < 2)
       pid_setpoint += 0.05; //Slowly change the setpoint angle so the robot starts leaning backwards
     if (pid_output < max_target_speed)
       pid_setpoint += 0.005; //Slowly change the setpoint angle so the robot starts leaning backwards
