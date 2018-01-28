@@ -8,18 +8,19 @@ const unsigned long loop_time = 4000, voltage_loop_time = 5000000;
 const int calibration_loops = 500;
 const int acc_raw_limit = 8200;
 // const int motor_interval = 500;
-const int motor_speed = 90;    // rpms
+const int motor_speed = 90;   // rpms
 const int gyro_address = 0x68; //MPU-6050 I2C address (0x68 or 0x69)
 const int dead_band = 5;
 
 //Various settings
-float pid_p_gain = 20;        //Gain setting for the P-controller (15)
-float pid_i_gain = 0.2;       //Gain setting for the I-controller (1.5)
-float pid_d_gain = 30;        //Gain setting for the D-controller (30)
+float pid_p_gain = 10;        //Gain setting for the P-controller (15)
+float pid_i_gain = 1;       //Gain setting for the I-controller (1.5)
+float pid_d_gain = 20;        //Gain setting for the D-controller (30)
 float turning_speed = 30;     //Turning speed (20)
 float max_target_speed = 150; //Max target speed (100)
 
 unsigned long time, next_loop_time, last_voltage_loop_time; //, left_motor_start_time, right_motor_start_time;
+unsigned long gyro_timer;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Declaring global variables
@@ -31,8 +32,8 @@ int right_motor, throttle_right_motor, throttle_right_motor_memory, throttle_cou
 
 // AccelStepper stepperL(AccelStepper::FULL4WIRE, 2, 3, 4, 5);
 // AccelStepper stepperR(AccelStepper::FULL4WIRE, 6, 7, 8, 9);
-Stepper stepperL(200, 2, 3, 4, 5);
-Stepper stepperR(200, 6, 7, 8, 9);
+Stepper stepperL(200, 4, 5, 6, 7);
+Stepper stepperR(200, 8, 9, 10, 12);
 
 int battery_voltage;
 int receive_counter;
@@ -100,7 +101,7 @@ void setup()
     Wire.write(0x3F);
     Wire.endTransmission();
     Wire.requestFrom(gyro_address, 2);
-    acc_calibration_value -= Wire.read() << 8 | Wire.read();
+    acc_calibration_value += Wire.read() << 8 | Wire.read();
     delayMicroseconds(loop_time - 300); //Wait for 3700 microseconds to simulate the main program loop time
   }
   gyro_pitch_calibration_value /= calibration_loops; //Divide the total value by 500 to get the avarage gyro offset
@@ -111,14 +112,14 @@ void setup()
   stepperR.setSpeed(motor_speed);
 
 #ifdef DEBUG
-  Serial.print("gyro_pitch_calib:");
+  Serial.print(F("gyro_pitch_calib:"));
   Serial.println(gyro_pitch_calibration_value);
-  Serial.print("gyro_yaw_calib:");
+  Serial.print(F("gyro_yaw_calib:"));
   Serial.println(gyro_yaw_calibration_value);
-  Serial.print("acc_calib:");
+  Serial.print(F("acc_calib:"));
   Serial.println(acc_calibration_value);
 #endif
-
+  gyro_timer = micros();
   next_loop_time = micros() + loop_time;
 }
 
@@ -154,7 +155,7 @@ void loop()
       digitalWrite(13, HIGH); //Turn on the led if battery voltage is too low
       low_bat = 1;            //Set the low_bat variable to 1
 #ifdef DEBUG
-      Serial.print("low battery voltage:");
+      Serial.print(F("low battery voltage:"));
       Serial.println(battery_voltage);
 #endif
     }
@@ -169,14 +170,14 @@ void loop()
   Wire.endTransmission();                                  //End the transmission
   Wire.requestFrom(gyro_address, 2);                       //Request 2 bytes from the gyro, ACCEL_ZOUT_H ACCEL_ZOUT_L
   accelerometer_data_raw = Wire.read() << 8 | Wire.read(); //Combine the two bytes to make one integer
-  accelerometer_data_raw += (int)acc_calibration_value;    //Add the accelerometer calibration value
+  accelerometer_data_raw -= (int)acc_calibration_value;    //Add the accelerometer calibration value
 
   //Prevent division by zero by limiting the acc data to +/-acc_raw_limit;
   accelerometer_data_raw = constrain(accelerometer_data_raw, -acc_raw_limit, acc_raw_limit);
   angle_acc = asin((float)accelerometer_data_raw / acc_raw_limit) * 57.296; //Calculate the current angle according to the accelerometer
 
 #ifdef DEBUG
-  Serial.print("acc ang:");
+  Serial.print(F("acc ang:"));
   Serial.println(angle_acc);
 #endif
 
@@ -194,12 +195,13 @@ void loop()
   gyro_yaw_data_raw = Wire.read() << 8 | Wire.read();   //Combine the two bytes to make one integer
   gyro_pitch_data_raw = Wire.read() << 8 | Wire.read(); //Combine the two bytes to make one integer
 
-  gyro_pitch_data_raw -= gyro_pitch_calibration_value;                   //Add the gyro calibration value
-                                                                         // 500°/s / 2^16 * loop_time = 0.00762939453125 * loop_time
-  angle_gyro += gyro_pitch_data_raw * 0.0076294 * loop_time / 1000000.0; //Calculate the traveled during this loop angle and add this to the angle_gyro variable
+  gyro_pitch_data_raw -= gyro_pitch_calibration_value;                                 //Add the gyro calibration value
+                                                                                       // 500°/s / 2^16 * loop_time = 0.00762939453125 * loop_time
+  angle_gyro += gyro_pitch_data_raw * 0.0076294 * (micros() - gyro_timer) / 1000000.0; //Calculate the traveled during this loop angle and add this to the angle_gyro variable
+  gyro_timer = micros();
 
 #ifdef DEBUG
-  Serial.print("gyro ang:");
+  Serial.print(F("gyro ang:"));
   Serial.println(angle_gyro);
 #endif
 
@@ -216,10 +218,10 @@ void loop()
   //Uncomment the following line to make the compensation active
   //angle_gyro -= gyro_yaw_data_raw * 0.0000003;                            //Compensate the gyro offset when the robot is rotating
 
-  angle_gyro = angle_gyro * 0.9996 + angle_acc * 0.0004; //Correct the drift of the gyro angle with the accelerometer angle
-
+  angle_gyro = angle_gyro * 0.99 + angle_acc * 0.01; //Correct the drift of the gyro angle with the accelerometer angle
+  Serial.println(angle_gyro);
 #ifdef DEBUG
-  Serial.print("comp ang:");
+  Serial.print(F("comp ang:"));
   Serial.println(angle_gyro);
 #endif
 
@@ -335,30 +337,31 @@ void loop()
     right_motor = 0;
 
   //Copy the pulse time to the throttle variables so the interrupt subroutine can use them
-  throttle_left_motor = left_motor * 10;
-  throttle_right_motor = right_motor * 10;
+  throttle_left_motor = left_motor;
+  throttle_right_motor = right_motor;
 
 #ifdef DEBUG
   time = micros() - t;
-  Serial.print("l_th:");
+  Serial.print(F("l_th:"));
   Serial.println(throttle_left_motor);
-  Serial.print("r_th:");
+  Serial.print(F("r_th:"));
   Serial.println(throttle_right_motor);
-  Serial.print("angle calc: ");
+  Serial.print(F("angle calc: "));
   Serial.println(time);
 #endif
 
-  //int count = 0;
+  int count = 0;
   while (next_loop_time > micros() + 200)
   {
-    t = micros()+19;
+    t = micros() + 100;
     run();
-    while(t>micros());
-    //count++;
+    while (t > micros())
+      ;
+    count++;
   }
 
 #ifdef DEBUG
-  Serial.print("step loop: ");
+  Serial.print(F("step loop: "));
   Serial.println(count);
 #endif
 
@@ -384,9 +387,13 @@ void run()
       left_step = -1;
       throttle_left_motor_memory *= -1; //Invert the throttle_left_motor_memory variable
     }
-    else
+    else if (throttle_left_motor_memory > 0)
     {
       left_step = 1;
+    }
+    else
+    {
+      left_step = 0;
     }
   }
   else if (throttle_counter_left_motor == 1)
@@ -402,12 +409,16 @@ void run()
     throttle_right_motor_memory = throttle_right_motor; //Load the next throttle_right_motor variable
     if (throttle_right_motor_memory < 0)
     { //If the throttle_right_motor_memory is negative
-      right_step = 1;
+      right_step = -1;
       throttle_right_motor_memory *= -1; //Invert the throttle_right_motor_memory variable
+    }
+    else if (throttle_right_motor_memory > 0)
+    {
+      right_step = 1;
     }
     else
     {
-      right_step = -1;
+      right_step = 0;
     }
   }
   else if (throttle_counter_right_motor == 1)

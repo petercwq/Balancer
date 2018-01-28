@@ -9,8 +9,8 @@
 #include "MultiStepper.h"
 
 // Define a stepper and the pins it will use
-AccelStepper stepperL(AccelStepper::FULL4WIRE, 2, 3, 4, 5);
-AccelStepper stepperR(AccelStepper::FULL4WIRE, 6, 7, 8, 9);
+AccelStepper stepperL(AccelStepper::FULL4WIRE, 4, 5, 6, 7);
+AccelStepper stepperR(AccelStepper::FULL4WIRE, 8, 9, 10, 12);
 MultiStepper steppers;
 
 void setup()
