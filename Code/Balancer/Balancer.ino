@@ -8,14 +8,14 @@ const unsigned long loop_time = 4000, voltage_loop_time = 5000000;
 const int calibration_loops = 500;
 const int acc_raw_limit = 8200;
 // const int motor_interval = 500;
-const int motor_speed = 90;   // rpms
+const int motor_speed = 100;   // rpms
 const int gyro_address = 0x68; //MPU-6050 I2C address (0x68 or 0x69)
 const int dead_band = 5;
 
 //Various settings
-float pid_p_gain = 10;        //Gain setting for the P-controller (15)
-float pid_i_gain = 1;       //Gain setting for the I-controller (1.5)
-float pid_d_gain = 20;        //Gain setting for the D-controller (30)
+float pid_p_gain = 11;        //Gain setting for the P-controller (15)
+float pid_i_gain = 1;         //Gain setting for the I-controller (1.5)
+float pid_d_gain = 18;        //Gain setting for the D-controller (30)
 float turning_speed = 30;     //Turning speed (20)
 float max_target_speed = 150; //Max target speed (100)
 
@@ -38,7 +38,7 @@ Stepper stepperR(200, 8, 9, 10, 12);
 int battery_voltage;
 int receive_counter;
 int gyro_pitch_data_raw, gyro_yaw_data_raw, accelerometer_data_raw;
-long gyro_yaw_calibration_value, gyro_pitch_calibration_value, acc_calibration_value;
+long gyro_yaw_calibration_value, gyro_pitch_calibration_value, acc_calibration_value = -138;
 
 float angle_gyro, angle_acc, angle, self_balance_pid_setpoint;
 float pid_error_temp, pid_i_mem, pid_setpoint, gyro_input, pid_output, pid_last_d_error;
@@ -52,15 +52,6 @@ void setup()
   Serial.begin(115200);
   Wire.begin(); //Start the I2C bus as master
   TWBR = 12;    //Set the I2C clock speed to 400kHz
-
-  // //To create a variable pulse for controlling the stepper motors a timer is created that will execute a piece of code (subroutine) every 20us
-  // //This subroutine is called TIMER2_COMPA_vect
-  // TCCR2A = 0;              //Make sure that the TCCR2A register is set to zero
-  // TCCR2B = 0;              //Make sure that the TCCR2A register is set to zero
-  // TIMSK2 |= (1 << OCIE2A); //Set the interupt enable bit OCIE2A in the TIMSK2 register
-  // TCCR2B |= (1 << CS21);   //Set the CS21 bit in the TCCRB register to set the prescaler to 8
-  // OCR2A = 199;             //The compare register is set to 199 => 100us / (1s / (16.000.000MHz / 8)) - 1
-  // TCCR2A |= (1 << WGM21);  //Set counter 2 to CTC (clear timer on compare) mode
 
   //By default the MPU-6050 sleeps. So we have to wake it up.
   Wire.beginTransmission(gyro_address); //Start communication with the address found during search.
@@ -97,16 +88,16 @@ void setup()
     gyro_yaw_calibration_value += Wire.read() << 8 | Wire.read();   //Combine the two bytes to make one integer
     gyro_pitch_calibration_value += Wire.read() << 8 | Wire.read(); //Combine the two bytes to make one integer
 
-    Wire.beginTransmission(gyro_address);
-    Wire.write(0x3F);
-    Wire.endTransmission();
-    Wire.requestFrom(gyro_address, 2);
-    acc_calibration_value += Wire.read() << 8 | Wire.read();
+    // Wire.beginTransmission(gyro_address);
+    // Wire.write(0x3F);
+    // Wire.endTransmission();
+    // Wire.requestFrom(gyro_address, 2);
+    // acc_calibration_value += Wire.read() << 8 | Wire.read();
     delayMicroseconds(loop_time - 300); //Wait for 3700 microseconds to simulate the main program loop time
   }
   gyro_pitch_calibration_value /= calibration_loops; //Divide the total value by 500 to get the avarage gyro offset
   gyro_yaw_calibration_value /= calibration_loops;   //Divide the total value by 500 to get the avarage gyro offset
-  acc_calibration_value /= calibration_loops;
+  // acc_calibration_value /= calibration_loops;
 
   stepperL.setSpeed(motor_speed);
   stepperR.setSpeed(motor_speed);
@@ -219,7 +210,6 @@ void loop()
   //angle_gyro -= gyro_yaw_data_raw * 0.0000003;                            //Compensate the gyro offset when the robot is rotating
 
   angle_gyro = angle_gyro * 0.99 + angle_acc * 0.01; //Correct the drift of the gyro angle with the accelerometer angle
-  Serial.println(angle_gyro);
 #ifdef DEBUG
   Serial.print(F("comp ang:"));
   Serial.println(angle_gyro);
@@ -353,7 +343,7 @@ void loop()
   int count = 0;
   while (next_loop_time > micros() + 200)
   {
-    t = micros() + 100;
+    t = micros() + 80;
     run();
     while (t > micros())
       ;
