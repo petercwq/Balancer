@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using Android.Bluetooth;
 using Android.Content;
 using FormsJoystick.Communication;
@@ -76,7 +77,7 @@ namespace FormsJoystick.Droid.Communication
         }
 
         // tries to open a connection to the bluetooth printer device
-        public bool Connect()
+        public async Task<bool> ConnectAsync()
         {
             try
             {
@@ -99,7 +100,7 @@ namespace FormsJoystick.Droid.Communication
 
                 try
                 {
-                    BTSocket.Connect();
+                    await BTSocket.ConnectAsync();
                     opened = true;
                 }
                 catch (IOException e)
@@ -108,7 +109,7 @@ namespace FormsJoystick.Droid.Communication
                     try
                     {
                         BTSocket = (BluetoothSocket)BTDevice.Class.GetMethod("createRfcommSocket", new Class[] { uuid.Class }).Invoke(BTDevice, 1);
-                        BTSocket.Connect();
+                        await BTSocket.ConnectAsync();
                         opened = true;
                     }
                     catch (System.Exception e2)

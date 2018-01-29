@@ -18,8 +18,8 @@
         </Grid.RowDefinitions>
         <Label Text="{Binding Command, Mode=OneWay}" HorizontalOptions="Center" VerticalOptions="Center" Grid.Row="0" />
         <Label Text="{Binding Message, Mode=OneWay}" HorizontalOptions="Center" VerticalOptions="Center" Grid.Row="1" />
-        <CustomControls:JoystickControl x:Name="JoystickControl" Grid.Row="2" BackgroundColor="#ececec" HorizontalOptions="Center" VerticalOptions="Center" HeightRequest="250" WidthRequest="300" Xposition="{Binding JoystickXposition, Mode=OneWayToSource}" Yposition="{Binding JoystickYposition, Mode=OneWayToSource}" />
-        <Grid BindingContext="{x:Reference Name=JoystickControl}" Grid.Row="3">
+        <CustomControls:JoystickControl x:Name="JoystickControl" Grid.Row="2" HorizontalOptions="Center" VerticalOptions="Center" HeightRequest="250" WidthRequest="300" Xposition="{Binding JoystickXposition, Mode=OneWayToSource}" Yposition="{Binding JoystickYposition, Mode=OneWayToSource}" />
+        <!--<Grid BindingContext="{x:Reference Name=JoystickControl}" Grid.Row="3">
             <Grid.Resources>
                 <ResourceDictionary>
                     <ValueConverters:DummyValueConverter x:Key="dummyConverter" />
@@ -37,6 +37,7 @@
             <Label Text="{Binding Distance}" Grid.Row="2" Grid.Column="1" />
             <Label Text="Angle" Grid.Row="3" Grid.Column="0" />
             <Label Text="{Binding Angle}" Grid.Row="3" Grid.Column="1" />
-        </Grid>
+        </Grid>-->
+        <Button Text="{Binding ConnectText, Mode=OneWay}" Command="{Binding ConnectCommand}" Grid.Row="3" HorizontalOptions="Center" VerticalOptions="Center"/>
     </Grid>
 </Views:PageViewBase>
