@@ -1,3 +1,5 @@
+// Arduino Pro Min 5V + L298N *2 + STH 39236 *2
+
 #include <Wire.h> //Include the Wire.h library so we can communicate with the gyro
 #include <Stepper.h>
 
