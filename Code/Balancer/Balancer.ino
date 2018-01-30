@@ -7,7 +7,7 @@
 
 const int battery_low_thresh = 1110, battery_high_thresh = 800, diode_voltage = 83;
 const unsigned long voltage_loop_time_ms = 5000;
-const unsigned long loop_time_us = 10000;
+const unsigned long loop_time_us = 6000;
 
 const int gyro_address = 0x68; //MPU-6050 I2C address (0x68 or 0x69)
 long gyro_pitch_calib_value = -21, gyro_yaw_calib_value = -521, acc_z_calib_value = -400;
@@ -16,7 +16,7 @@ const int acc_raw_limit = 8200;
 unsigned long next_loop_time_us, next_voltage_loop_time_ms, last_gyro_time_us, t;
 int bat_vol;
 
-float pid_p = 30, pid_i = 1.2, pid_d = 20;
+float pid_p = 25, pid_i = 1.2, pid_d = 15;
 byte start, low_bat, receive_counter, move_byte, reply_buf[2];
 
 Stepper stepperL(200, 4, 5, 6, 7);
