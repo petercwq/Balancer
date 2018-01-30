@@ -58,12 +58,12 @@ namespace FormsJoystick.ViewModels
                             if (_joystickXposition > 30)
                             {
                             // turn right
-                            command |= 0b00000010;
+                            command |= 0b00000001;
                             }
                             else if (_joystickXposition < -30)
                             {
                             // turn right
-                            command |= 0b00000001;
+                            command |= 0b00000010;
                             }
                             if (_joystickYposition > 30)
                             {

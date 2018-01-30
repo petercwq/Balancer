@@ -17,24 +17,48 @@
 
 #include <Stepper.h>
 
-const int stepsPerRevolution = 200;  // change this to fit the number of steps per revolution
-// for your motor
+float ms = 1;
 
 // initialize the stepper library on pins 8 through 11:
-Stepper myStepper1(stepsPerRevolution, 6, 7, 8, 9);
-Stepper myStepper2(stepsPerRevolution, 2, 3, 4, 5);
+Stepper stepperL(200, 4, 5, 6, 7);
+Stepper stepperR(200, 8, 9, 10, 12);
 
-
-void setup() {
+void setup()
+{
   // initialize the serial port:
   Serial.begin(115200);
+
+  stepperL.setSpeed(400);
+  stepperL.setSpeed(400);
 }
 
-void loop() {
-  unsigned long t = micros();
-  myStepper1.step(1);
-  myStepper2.step(1);
-  Serial.println(micros()-t);
-  delay(2);
-}
+void loop()
+{
+  if (Serial.available())
+  {
+    byte r = Serial.read();
+    if (r == '-' || r == '=')
+    {
+      float flag = 1;
+      if (r == '-')
+        flag = -1;
+      if (ms > 0.05)
+        ms += 0.05 * flag;
+      else
+        ms += 0.0005 * flag;
+      Serial.println(ms*1000);
+    }
+  }
 
+  stepperL.step(1);
+  stepperR.step(1);
+
+  if(ms > 0.005)
+  {
+    delay((unsigned int)(ms * 1000));
+  }
+  else 
+  {
+    delayMicroseconds((unsigned int)(ms * 1000000));
+  }
+}
