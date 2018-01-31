@@ -21,8 +21,8 @@ namespace FormsJoystick.Droid.Communication
         BluetoothDevice BTDevice;
 
         // needed for communication to bluetooth device / network
-        StreamWriter BTOutputStream;
-        StreamReader BTInputStream;
+        BinaryWriter BTOutputStream;
+        BinaryReader BTInputStream;
 
         private bool found = false;
         private bool opened = false;
@@ -30,6 +30,11 @@ namespace FormsJoystick.Droid.Communication
         public BluetoothCom()
         {
 
+        }
+
+        public bool Connected
+        {
+            get { return opened; }
         }
 
         // this will find a bluetooth printer device
@@ -123,10 +128,10 @@ namespace FormsJoystick.Droid.Communication
                 BTSocket.Dispose();
                 System.Diagnostics.Debug.WriteLine(Ex);
             }
-            if(opened)
+            if (opened)
             {
-                BTOutputStream = new StreamWriter(BTSocket.OutputStream);
-                BTInputStream = new StreamReader(BTSocket.InputStream);
+                BTOutputStream = new BinaryWriter(BTSocket.OutputStream);
+                BTInputStream = new BinaryReader(BTSocket.InputStream);
             }
             return opened;
         }
@@ -153,7 +158,7 @@ namespace FormsJoystick.Droid.Communication
         {
             try
             {
-                BTOutputStream.BaseStream.WriteByte(command);
+                BTOutputStream.Write(command);
                 return true;
             }
             catch (System.Exception Ex)
@@ -161,6 +166,33 @@ namespace FormsJoystick.Droid.Communication
                 System.Diagnostics.Debug.WriteLine(Ex);
             }
             return false;
+        }
+
+        public bool SendData(byte[] command, int offset = 0, int count = 0)
+        {
+            try
+            {
+                BTOutputStream.Write(command, offset > 0 ? offset : 0, count > 0 ? count : command.Length);
+                return true;
+            }
+            catch (System.Exception Ex)
+            {
+                System.Diagnostics.Debug.WriteLine(Ex);
+            }
+            return false;
+        }
+
+        public int ReadData(byte[] buffer, int offset, int count)
+        {
+            try
+            {
+                return BTInputStream.Read(buffer, offset, count);
+            }
+            catch (System.Exception Ex)
+            {
+                System.Diagnostics.Debug.WriteLine(Ex);
+            }
+            return 0;
         }
     }
 }

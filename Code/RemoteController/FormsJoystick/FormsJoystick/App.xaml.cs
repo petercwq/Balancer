@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using FormsJoystick.Communication;
+﻿using FormsJoystick.Communication;
 using Xamarin.Forms;
 
 namespace FormsJoystick
@@ -12,8 +8,7 @@ namespace FormsJoystick
         public App()
         {
             InitializeComponent();
-
-            MainPage = new FormsJoystick.Views.MainPage();
+            MainPage = new Views.MainPage();
         }
 
         protected override void OnStart()
@@ -23,7 +18,10 @@ namespace FormsJoystick
 
         protected override void OnSleep()
         {
+            var btcom = DependencyService.Get<IBluetoothCom>();
             // Handle when your app sleeps
+            if (btcom != null && btcom.Connected)
+                btcom.Close();
         }
 
         protected override void OnResume()

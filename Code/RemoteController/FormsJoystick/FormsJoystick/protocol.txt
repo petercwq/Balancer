@@ -1,0 +1,14 @@
+﻿  // received protocol                                 |   reply
+  // cmd_byte val_byte                                 |   cmd_byte val_byte
+  // 0x01     0b00000001 - turn left (ccw)             |
+  //          0b00000010 - turn right (cw)             |
+  //          0b00000100 - forward                     |
+  //          0b00001000 - backward                    |
+  // 0x02     pid_p * 10 - set, get if 0xff            |   0x02     pid_p * 10
+  // 0x03     pid_i * 10 - set, get if 0xff            |   0x03     pid_i * 10
+  // 0x04     pid_d * 10 - set, get if 0xff            |   0x04     pid_d * 10
+  // 0x05     0x00       - read battery                |   0x05     voltage * 10 - ex. 10.5 = 105
+  // 0x06     0b00000001 - calibrate gyro              |
+  //          0b00000010 - calibrate acc               |
+  // 0x07     0~100      - set, get turn speed         |   0x07     turn_speed
+  // 0x08     0~100      - set, get move speed         |   0x08     move_speed

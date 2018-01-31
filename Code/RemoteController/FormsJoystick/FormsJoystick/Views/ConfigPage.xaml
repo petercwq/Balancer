@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms" 
+                        xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" 
+                        xmlns:Views="clr-namespace:FormsJoystick.Views" 
+                        xmlns:CustomControls="clr-namespace:FormsJoystick.CustomControls" 
+                        xmlns:ValueConverters="clr-namespace:FormsJoystick.ValueConverters" 
+                        xmlns:ViewModels="clr-namespace:FormsJoystick.ViewModels" 
+                        x:Class="FormsJoystick.Views.ConfigPage"
+             Title="Config">
+    <ContentPage.BindingContext>
+        <ViewModels:ConfigPageViewModel/>
+    </ContentPage.BindingContext>
+    <StackLayout HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand" Orientation="Vertical">
+        <StackLayout Orientation="Horizontal">
+            <Label Text="PID P:" WidthRequest="50"/>
+            <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F2}'}"
+               BindingContext="{x:Reference Name=slider1}" WidthRequest="50" />
+            <Slider x:Name="slider1"
+                Maximum="30.0"
+                Minimum="1.0"
+                HorizontalOptions="FillAndExpand" />
+        </StackLayout>
+        <StackLayout Orientation="Horizontal">
+            <Label Text="PID I:" WidthRequest="50"/>
+            <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F2}'}"
+               BindingContext="{x:Reference Name=slider2}" WidthRequest="50" />
+            <Slider x:Name="slider2"
+               Maximum="5.0" 
+               Minimum="0.0" 
+               HorizontalOptions="FillAndExpand" />
+        </StackLayout>
+        <StackLayout Orientation="Horizontal">
+            <Label Text="PID D:" WidthRequest="50"/>
+            <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F2}'}"
+               BindingContext="{x:Reference Name=slider3}" WidthRequest="50" />
+            <Slider x:Name="slider3"
+                Maximum="100.0"
+                Minimum="0.0"
+                HorizontalOptions="FillAndExpand" />
+        </StackLayout>
+        <StackLayout Orientation="Horizontal">
+            <Entry WidthRequest="100"/>
+            <Slider HorizontalOptions="FillAndExpand"/>
+        </StackLayout>
+    </StackLayout>
+</ContentPage>

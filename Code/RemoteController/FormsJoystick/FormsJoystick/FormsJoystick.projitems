@@ -14,16 +14,24 @@
     </Compile>
     <Compile Include="$(MSBuildThisFileDirectory)CustomControls\JoystickControl.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ValueConverters\DummyValueConverter.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Views\MainPageView.xaml.cs">
-      <DependentUpon>MainPageView.xaml</DependentUpon>
+    <Compile Include="$(MSBuildThisFileDirectory)ViewModels\BaseViewModel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ViewModels\ConfigPageViewModel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Views\ConfigPage.xaml.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Views\MainPage.xaml.cs">
+      <SubType>Code</SubType>
     </Compile>
-    <Compile Include="$(MSBuildThisFileDirectory)ViewModels\MainPageViewModel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Views\StickPage.xaml.cs">
+      <DependentUpon>StickPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)ViewModels\StickPageViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Communication\IBluetoothCom.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)ViewModels\ViewModelBase.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Views\PageViewBase.cs" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Views\MainPageView.xaml">
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Views\ConfigPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Views\StickPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
     </EmbeddedResource>
@@ -33,7 +41,14 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="$(MSBuildThisFileDirectory)Views\" />
     <Folder Include="$(MSBuildThisFileDirectory)Communication\" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Views\MainPage.xaml">
+      <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)protocol.txt" />
   </ItemGroup>
 </Project>

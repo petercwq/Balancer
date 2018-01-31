@@ -1,31 +1,14 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Windows.Input;
-using FormsJoystick.Communication;
 using Xamarin.Forms;
 
 namespace FormsJoystick.ViewModels
 {
-    public class MainPageViewModel : ViewModelBase, INotifyPropertyChanged
+    public class StickPageViewModel : BaseViewModel
     {
-        IBluetoothCom BTCom = DependencyService.Get<IBluetoothCom>();
+        const string DEV_NAME = "EMS01_1152";
 
-        public override void OnAppearing()
-        {
-            base.OnAppearing();
-        }
-
-        public override void OnDisappearing()
-        {
-            base.OnDisappearing();
-            if (BTCom != null)
-            {
-                BTCom.Close();
-                ConnectText = "Connect";
-            }
-        }
-
-        public MainPageViewModel()
+        public StickPageViewModel()
         {
             ConnectCommand = new Command(execute: async () =>
             {
@@ -42,7 +25,7 @@ namespace FormsJoystick.ViewModels
                             Message = "IBluetoothCom can't be initialized";
                             return;
                         }
-                        if (!BTCom.FindDevice("EMS01_1152"))
+                        if (!BTCom.FindDevice(DEV_NAME))
                         {
                             Message = "Can't find device";
                             return;
@@ -75,18 +58,21 @@ namespace FormsJoystick.ViewModels
                                 // foreward
                                 command |= 1 << 3;
                             }
-                            if (BTCom.SendData(command))
+
+                            if (_command != "00000000" || command != 0x00)
                             {
                                 Command = Convert.ToString(command, 2).PadLeft(8, '0');
-                                return true;
+                                if (!BTCom.Connected)
+                                {
+                                    ConnectText = "Connect";
+                                    return false;
+                                }
+                                else
+                                {
+                                    PushNewCommand(new CmdPacket { Command = 0x01, Value = command });
+                                }
                             }
-                            else
-                            {
-                                Message = "Send command failed";
-                                BTCom.Close();
-                                ConnectText = "Connect";
-                                return false;
-                            }
+                            return true;
                         });
                         ConnectText = "Disconnect";
                     }
@@ -147,12 +133,5 @@ namespace FormsJoystick.ViewModels
         }
 
         public ICommand ConnectCommand { protected set; get; }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        void NotifyPropertyChanged(string name)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
     }
 }
