@@ -57,23 +57,23 @@ namespace FormsJoystick.ViewModels
                             byte command = 0x00;
                             if (_joystickXposition > 30)
                             {
-                            // turn right
-                            command |= 0b00000001;
+                                // turn right
+                                command |= 1 << 0;
                             }
                             else if (_joystickXposition < -30)
                             {
-                            // turn right
-                            command |= 0b00000010;
+                                // turn right
+                                command |= 1 << 1;
                             }
                             if (_joystickYposition > 30)
                             {
-                            // foreward
-                            command |= 0b00000100;
+                                // foreward
+                                command |= 1 << 2;
                             }
                             else if (_joystickYposition < -30)
                             {
-                            // foreward
-                            command |= 0b00001000;
+                                // foreward
+                                command |= 1 << 3;
                             }
                             if (BTCom.SendData(command))
                             {
