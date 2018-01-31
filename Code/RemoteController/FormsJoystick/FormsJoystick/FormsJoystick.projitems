@@ -49,6 +49,6 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="$(MSBuildThisFileDirectory)protocol.txt" />
+    <None Include="$(MSBuildThisFileDirectory)protocol.txt" />
   </ItemGroup>
 </Project>
