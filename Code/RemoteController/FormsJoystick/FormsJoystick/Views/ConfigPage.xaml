@@ -11,7 +11,7 @@
         <ViewModels:ConfigPageViewModel/>
     </ContentPage.BindingContext>
     <StackLayout HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand" Orientation="Vertical">
-        <StackLayout Orientation="Horizontal">
+        <StackLayout Orientation="Horizontal"  Margin="10">
             <Label Text="PID P:" WidthRequest="50"/>
             <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F2}'}"
                BindingContext="{x:Reference Name=slider1}" WidthRequest="50" />
@@ -20,7 +20,7 @@
                 Minimum="1.0"
                 HorizontalOptions="FillAndExpand" />
         </StackLayout>
-        <StackLayout Orientation="Horizontal">
+        <StackLayout Orientation="Horizontal"  Margin="10">
             <Label Text="PID I:" WidthRequest="50"/>
             <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F2}'}"
                BindingContext="{x:Reference Name=slider2}" WidthRequest="50" />
@@ -29,7 +29,7 @@
                Minimum="0.0" 
                HorizontalOptions="FillAndExpand" />
         </StackLayout>
-        <StackLayout Orientation="Horizontal">
+        <StackLayout Orientation="Horizontal"  Margin="10">
             <Label Text="PID D:" WidthRequest="50"/>
             <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F2}'}"
                BindingContext="{x:Reference Name=slider3}" WidthRequest="50" />
@@ -38,7 +38,7 @@
                 Minimum="0.0"
                 HorizontalOptions="FillAndExpand" />
         </StackLayout>
-        <StackLayout Orientation="Horizontal">
+        <StackLayout Orientation="Horizontal"  Margin="10">
             <Label Text="Turn Speed:" WidthRequest="100"/>
             <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F0}'}"
                BindingContext="{x:Reference Name=slider4}" WidthRequest="40" />
@@ -47,7 +47,7 @@
                 Minimum="0.0"
                 HorizontalOptions="FillAndExpand" />
         </StackLayout>
-                <StackLayout Orientation="Horizontal">
+        <StackLayout Orientation="Horizontal"  Margin="10">
             <Label Text="Move Speed:" WidthRequest="100"/>
             <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F0}'}"
                BindingContext="{x:Reference Name=slider5}" WidthRequest="40" />
@@ -56,11 +56,11 @@
                 Minimum="0.0"
                 HorizontalOptions="FillAndExpand" />
         </StackLayout>
-        <StackLayout Orientation="Horizontal" VerticalOptions="EndAndExpand">
+        <StackLayout Orientation="Horizontal" VerticalOptions="EndAndExpand"  Margin="10">
             <Button Text="Calib Gyro" HorizontalOptions="CenterAndExpand" Command="CalibGyroCommand"/>
             <Button Text="Calib Acc" HorizontalOptions="CenterAndExpand" Command="CalibAccCommand"/>
         </StackLayout>
-        <StackLayout Orientation="Horizontal" VerticalOptions="End">
+        <StackLayout Orientation="Horizontal" VerticalOptions="End"  Margin="10">
             <Button Text="Read" HorizontalOptions="CenterAndExpand" Command="ReadCommand"/>
             <Button Text="Write" HorizontalOptions="CenterAndExpand" Command="WriteCommand"/>
         </StackLayout>
