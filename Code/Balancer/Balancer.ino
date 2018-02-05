@@ -26,7 +26,8 @@ float angle_comp, angle_acc, angle_gyro;
 const float stop_angle = 30, start_angle = 0.3;
 
 byte turn_speed = 50, move_speed = 50;
-int left_delay, right_delay, left_delay_mem, right_delay_mem, left_step, right_step, left_step_time_ms, right_step_time_ms;
+int left_step, right_step;
+unsigned long left_step_time_us, right_step_time_us, left_delay_us, right_delay_us, left_delay_mem_us, right_delay_mem_us;
 
 float self_balance_pid_setpoint, pid_setpoint, pid_i_mem, pid_last_d_error, pid_error_temp, pid_output, pid_output_left, pid_output_right;
 float max_pid_out = 200;
@@ -122,11 +123,11 @@ void setup()
 
   // calibrate(0x03);
 
-  t = millis();
-  left_step_time_ms = t;
-  right_step_time_ms = t;
-  next_loop_time_us = micros() + loop_time_us;
-  last_gyro_time_us = micros();
+  t = micros();
+  left_step_time_us = t;
+  right_step_time_us = t;
+  last_gyro_time_us = t;
+  next_loop_time_us = t + loop_time_us;
 }
 
 void processCmd(byte cmd, byte val)
@@ -279,8 +280,8 @@ void updateAngle()
 
 void stop()
 {
-  left_delay = 10000;
-  right_delay = 10000;
+  left_delay_us = 10000;
+  right_delay_us = 10000;
   left_step = 0;
   right_step = 0;
 
@@ -376,11 +377,11 @@ void calcMove()
   }
 }
 
-int pid2delay(float pid_value)
+unsigned long pid2delay(float pid_value)
 {
   if (pid_value != 0)
   {
-    return abs((int)(1000.0 / pid_value)) + 1;
+    return (unsigned long)abs(1000000.0f / pid_value); // + 1
   }
   return 0;
 }
@@ -397,8 +398,8 @@ int pid2step(float pid_value)
 
 void calcMotors()
 {
-  left_delay = pid2delay(pid_output_left);
-  right_delay = pid2delay(pid_output_right);
+  left_delay_us = pid2delay(pid_output_left);
+  right_delay_us = pid2delay(pid_output_right);
 
   left_step = pid2step(pid_output_left);
   right_step = pid2step(pid_output_right);
@@ -464,18 +465,18 @@ void loop()
       calcMotors();
       while (next_loop_time_us > micros() + 200)
       {
-        t = millis();
-        if (left_step != 0 && left_delay > 0 && t - left_step_time_ms > left_delay_mem)
+        t = micros();
+        if (left_step != 0 && left_delay_us > 0 && t - left_step_time_us >= left_delay_mem_us)
         {
-          left_step_time_ms = t;
-          left_delay_mem = left_delay;
+          left_step_time_us = t;
+          left_delay_mem_us = left_delay_us;
           stepperL.step(left_step);
         }
-        t = millis();
-        if (right_step != 0 && right_delay > 0 && t - right_step_time_ms > right_delay_mem)
+        t = micros();
+        if (right_step != 0 && right_delay_us > 0 && t - right_step_time_us >= right_delay_mem_us)
         {
-          right_step_time_ms = t;
-          right_delay_mem = right_delay;
+          right_step_time_us = t;
+          right_delay_mem_us = right_delay_us;
           stepperR.step(right_step);
         }
       }
