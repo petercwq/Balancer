@@ -39,8 +39,30 @@
                 HorizontalOptions="FillAndExpand" />
         </StackLayout>
         <StackLayout Orientation="Horizontal">
-            <Entry WidthRequest="100"/>
-            <Slider HorizontalOptions="FillAndExpand"/>
+            <Label Text="Turn Speed:" WidthRequest="100"/>
+            <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F0}'}"
+               BindingContext="{x:Reference Name=slider4}" WidthRequest="40" />
+            <Slider x:Name="slider4"
+                Maximum="100.0"
+                Minimum="0.0"
+                HorizontalOptions="FillAndExpand" />
+        </StackLayout>
+                <StackLayout Orientation="Horizontal">
+            <Label Text="Move Speed:" WidthRequest="100"/>
+            <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F0}'}"
+               BindingContext="{x:Reference Name=slider5}" WidthRequest="40" />
+            <Slider x:Name="slider5"
+                Maximum="100.0"
+                Minimum="0.0"
+                HorizontalOptions="FillAndExpand" />
+        </StackLayout>
+        <StackLayout Orientation="Horizontal" VerticalOptions="EndAndExpand">
+            <Button Text="Calib Gyro" HorizontalOptions="CenterAndExpand"/>
+            <Button Text="Calib Acc" HorizontalOptions="CenterAndExpand"/>
+        </StackLayout>
+        <StackLayout Orientation="Horizontal" VerticalOptions="End">
+            <Button Text="Read" HorizontalOptions="CenterAndExpand"/>
+            <Button Text="Write" HorizontalOptions="CenterAndExpand"/>
         </StackLayout>
     </StackLayout>
 </ContentPage>
