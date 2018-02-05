@@ -7,6 +7,10 @@ namespace FormsJoystick.ViewModels
     public class StickPageViewModel : BaseViewModel
     {
         const string DEV_NAME = "EMS01_1152";
+        const int TIMER_INTERVAL = 40;
+        const int VOL_REQ_COUNT = 5000 / 40;
+
+        private int vol_req_counter = 0;
 
         public StickPageViewModel()
         {
@@ -72,6 +76,15 @@ namespace FormsJoystick.ViewModels
                                     PushNewCommand(new CmdPacket { Command = 0x01, Value = command });
                                 }
                             }
+
+                            if(BTCom.Connected && (vol_req_counter++)%VOL_REQ_COUNT==0)
+                            {
+                                PushNewCommand(new CmdPacket{Command = 0x05, Value = 0x00, Callback = (obj) => {
+                                    Voltage = obj / 10.0f;
+                                    }});
+                                vol_req_counter = 0;
+                            }
+
                             return true;
                         });
                         ConnectText = "Disconnect";
@@ -109,6 +122,14 @@ namespace FormsJoystick.ViewModels
         {
             get { return _message; }
             set { _message = value; NotifyPropertyChanged(nameof(Message)); }
+        }
+
+        //Voltage
+        private float _voltage;
+        public float Voltage
+        {
+            get { return _voltage; }
+            set { _voltage = value; NotifyPropertyChanged(nameof(Voltage)); }
         }
 
         private string _commandText = "Connect";
