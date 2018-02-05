@@ -57,12 +57,12 @@
                 HorizontalOptions="FillAndExpand" />
         </StackLayout>
         <StackLayout Orientation="Horizontal" VerticalOptions="EndAndExpand">
-            <Button Text="Calib Gyro" HorizontalOptions="CenterAndExpand"/>
-            <Button Text="Calib Acc" HorizontalOptions="CenterAndExpand"/>
+            <Button Text="Calib Gyro" HorizontalOptions="CenterAndExpand" Command="CalibGyroCommand"/>
+            <Button Text="Calib Acc" HorizontalOptions="CenterAndExpand" Command="CalibAccCommand"/>
         </StackLayout>
         <StackLayout Orientation="Horizontal" VerticalOptions="End">
-            <Button Text="Read" HorizontalOptions="CenterAndExpand"/>
-            <Button Text="Write" HorizontalOptions="CenterAndExpand"/>
+            <Button Text="Read" HorizontalOptions="CenterAndExpand" Command="ReadCommand"/>
+            <Button Text="Write" HorizontalOptions="CenterAndExpand" Command="WriteCommand"/>
         </StackLayout>
     </StackLayout>
 </ContentPage>
