@@ -7,7 +7,7 @@
 
 const int battery_low_thresh = 1110, battery_high_thresh = 800, diode_voltage = 83;
 const unsigned long voltage_loop_time_ms = 5000;
-const unsigned long loop_time_us = 6000;
+const unsigned long loop_time_us = 4000;
 
 const int gyro_address = 0x68; //MPU-6050 I2C address (0x68 or 0x69)
 long gyro_pitch_calib_value = -21, gyro_yaw_calib_value = -521, acc_z_calib_value = -400;
@@ -16,7 +16,7 @@ const int acc_raw_limit = 8200;
 unsigned long next_loop_time_us, next_voltage_loop_time_ms, last_gyro_time_us, t;
 int bat_vol;
 
-float pid_p = 25, pid_i = 1.2, pid_d = 15;
+float pid_p = 15, pid_i = 0.5, pid_d = 30;
 byte start, low_bat, receive_counter, move_byte, reply_buf[2];
 
 Stepper stepperL(200, 4, 5, 6, 7);
@@ -463,8 +463,8 @@ void loop()
       calcPid();
       calcMove();
       calcMotors();
-      while (next_loop_time_us > micros() + 200)
-      {
+      // while (next_loop_time_us > micros() + 200)
+      // {
         t = micros();
         if (left_step != 0 && left_delay_us > 0 && t - left_step_time_us >= left_delay_mem_us)
         {
@@ -472,21 +472,20 @@ void loop()
           left_delay_mem_us = left_delay_us;
           stepperL.step(left_step);
         }
-        t = micros();
         if (right_step != 0 && right_delay_us > 0 && t - right_step_time_us >= right_delay_mem_us)
         {
           right_step_time_us = t;
           right_delay_mem_us = right_delay_us;
           stepperR.step(right_step);
         }
-      }
+      // }
     }
     else
     {
       stop();
     }
   }
-  while (next_loop_time_us > micros())
-    ;
-  next_loop_time_us = micros() + loop_time_us;
+  // while (next_loop_time_us > micros())
+  //   ;
+  // next_loop_time_us = micros() + loop_time_us;
 }
