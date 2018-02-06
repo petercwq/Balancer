@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using Xamarin.Forms;
+using System.Threading.Tasks;
 
 namespace FormsJoystick.ViewModels
 {
@@ -55,31 +56,31 @@ namespace FormsJoystick.ViewModels
                                 {
                                     BTCom.Close();
                                 }
+                                //else if (pack.HasReturn)
+                                //{
+                                //    var buffer = new byte[2];
+                                //    var index = 0;
+                                //    var start = DateTime.Now;
+                                //    while (BTCom.Connected && DateTime.Now - start < TimeSpan.FromMilliseconds(10))
+                                //    {
+                                //        var readed = BTCom.ReadData(buffer, index, buffer.Length - index);
+                                //        index += readed;
 
-                                if (pack.HasReturn)
-                                {
-                                    var buffer = new byte[2];
-                                    var index = 0;
-                                    var start = DateTime.Now;
-                                    while (BTCom.Connected && DateTime.Now - start < TimeSpan.FromMilliseconds(10))
-                                    {
-                                        var readed = BTCom.ReadData(buffer, index, buffer.Length - index);
-                                        index += readed;
-
-                                        if (index == buffer.Length)
-                                        {
-                                            if (buffer[0] == pack.Command)
-                                            {
-                                                pack.Callback?.Invoke(buffer[1]);
-                                                break;
-                                            }
-                                            else
-                                            {
-                                                index = 0;
-                                            }
-                                        }
-                                    }
-                                }
+                                //        if (index == buffer.Length)
+                                //        {
+                                //            if (buffer[0] == pack.Command)
+                                //            {
+                                //                pack.Callback?.Invoke(buffer[1]);
+                                //                break;
+                                //            }
+                                //            else
+                                //            {
+                                //                index = 0;
+                                //            }
+                                //        }
+                                //        Task.Delay(2).Wait();
+                                //    }
+                                //}
                             }
                         }
                         else

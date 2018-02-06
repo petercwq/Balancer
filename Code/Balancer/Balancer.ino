@@ -16,7 +16,7 @@ const int acc_raw_limit = 8200;
 unsigned long next_loop_time_us, next_voltage_loop_time_ms, last_gyro_time_us, t;
 int bat_vol;
 
-float pid_p = 15, pid_i = 0.5, pid_d = 30;
+float pid_p = 6, pid_i = 0.6, pid_d = 15;
 byte start, low_bat, receive_counter, move_byte, reply_buf[2];
 
 Stepper stepperL(200, 4, 5, 6, 7);
@@ -25,12 +25,12 @@ Stepper stepperR(200, 8, 9, 10, 12);
 float angle_comp, angle_acc, angle_gyro;
 const float stop_angle = 30, start_angle = 0.3;
 
-byte turn_speed = 50, move_speed = 50;
-int left_step, right_step;
-unsigned long left_step_time_us, right_step_time_us, left_delay_us, right_delay_us, left_delay_mem_us, right_delay_mem_us;
+unsigned long left_step_time_us, right_step_time_us, left_delay_mem_us, right_delay_mem_us;
 
 float self_balance_pid_setpoint, pid_setpoint, pid_i_mem, pid_last_d_error, pid_error_temp, pid_output, pid_output_left, pid_output_right;
-float max_pid_out = 200;
+float max_pid_out = 230;
+// turn: 20 ~ 50, move: 50 ~ 150
+byte turn_speed = 30, move_speed = 100;
 
 void calibrate(byte cmd)
 {
@@ -121,7 +121,7 @@ void setup()
   Wire.write(0x03);                     //Set the register bits as 00000011 (Set Digital Low Pass Filter to 44Hz for Acc with 4.9ms delay, and 42Hz for Gyro with 4.8ms delay)
   Wire.endTransmission();               //End the transmission with the gyro
 
-  // calibrate(0x03);
+  calibrate(0x03);
 
   t = micros();
   left_step_time_us = t;
@@ -141,7 +141,7 @@ void processCmd(byte cmd, byte val)
   // 0x02     pid_p * 10 - set, get if 0xff            |   0x02     pid_p * 10
   // 0x03     pid_i * 10 - set, get if 0xff            |   0x03     pid_i * 10
   // 0x04     pid_d * 10 - set, get if 0xff            |   0x04     pid_d * 10
-  // 0x05     0x00       - read battery                |   0x05     voltage * 10 - ex. 10.5 = 105
+  // 0x05     0xff       - read battery                |   0x05     voltage * 10 - ex. 10.5 = 105
   // 0x06     0b00000001 - calibrate gyro              |
   //          0b00000010 - calibrate acc               |
   // 0x07     0~100      - set, get turn speed         |   0x07     turn_speed
@@ -239,11 +239,6 @@ void updateAngle()
     start = 1;              //Set the start variable to start the PID controller
   }
 
-  if (angle_acc > stop_angle || angle_acc < -stop_angle)
-  {
-    start = 0;
-  }
-
   Wire.beginTransmission(gyro_address); //Start communication with the gyro
   Wire.write(0x43);                     //Start reading at register 0x43
   Wire.endTransmission();               //End the transmission
@@ -272,6 +267,11 @@ void updateAngle()
   //Correct the drift of the gyro angle with the accelerometer angle
   angle_comp = angle_gyro * 0.99 + angle_acc * 0.01;
 
+  if (angle_comp > stop_angle || angle_comp < -stop_angle)
+  {
+    start = 0;
+  }
+  
 #ifdef DEBUG
   Serial.print(F("comp ang:"));
   Serial.println(angle_comp);
@@ -280,16 +280,13 @@ void updateAngle()
 
 void stop()
 {
-  left_delay_us = 10000;
-  right_delay_us = 10000;
-  left_step = 0;
-  right_step = 0;
-
   pid_output = 0; //Set the PID controller output to 0 so the motors stop moving
   pid_i_mem = 0;  //Reset the I-controller memory
   pid_last_d_error = 0;
   self_balance_pid_setpoint = 0; //Reset the self_balance_pid_setpoint variable
   pid_setpoint = 0;
+  pid_output_left = 0;
+  pid_output_right = 0;
 }
 
 // STH 39D236, 1000ms ~ 4ms, vibration at 20~40ms
@@ -315,66 +312,13 @@ void calcPid()
 
   pid_last_d_error = pid_error_temp; //Store the error for the next loop
 
-  if (pid_output < 5 && pid_output > -5)
+  if (abs(pid_output) < 10)
     pid_output = 0; //Create a dead-band to stop the motors when the robot is balanced
 
   pid_output_left = pid_output;  //Copy the controller output to the pid_output_left variable for the left motor
   pid_output_right = pid_output; //Copy the controller output to the pid_output_right variable for the right motor
 
   //Serial.println(pid_output);
-}
-
-void calcMove()
-{
-  // if (received_byte & B00000001)
-  // {                                    //If the first bit of the receive byte is set change the left and right variable to turn the robot to the left
-  //   pid_output_left += turning_speed;  //Increase the left motor speed
-  //   pid_output_right -= turning_speed; //Decrease the right motor speed
-  // }
-  // if (received_byte & B00000010)
-  // {                                    //If the second bit of the receive byte is set change the left and right variable to turn the robot to the right
-  //   pid_output_left -= turning_speed;  //Decrease the left motor speed
-  //   pid_output_right += turning_speed; //Increase the right motor speed
-  // }
-
-  // if (received_byte & B00000100)
-  // { //If the third bit of the receive byte is set change the left and right variable to turn the robot to the right
-  //   if (pid_setpoint > -1)
-  //     pid_setpoint -= 0.02; //Slowly change the setpoint angle so the robot starts leaning forewards
-  //   if (pid_output > max_target_speed * -1)
-  //     pid_setpoint -= 0.005; //Slowly change the setpoint angle so the robot starts leaning forewards
-  //   if (pid_setpoint < -2)
-  //     pid_setpoint += 0.1;
-  // }
-  // if (received_byte & B00001000)
-  // { //If the forth bit of the receive byte is set change the left and right variable to turn the robot to the right
-  //   if (pid_setpoint < 1)
-  //     pid_setpoint += 0.02; //Slowly change the setpoint angle so the robot starts leaning backwards
-  //   if (pid_output < max_target_speed)
-  //     pid_setpoint += 0.005; //Slowly change the setpoint angle so the robot starts leaning backwards
-  //   if (pid_setpoint > 2)
-  //     pid_setpoint -= 0.1;
-  // }
-
-  // if (!(received_byte & B00001100))
-  // { //Slowly reduce the setpoint to zero if no foreward or backward command is given
-  //   if (pid_setpoint > 0.5)
-  //     pid_setpoint -= 0.05; //If the PID setpoint is larger then 0.5 reduce the setpoint with 0.05 every loop
-  //   else if (pid_setpoint < -0.5)
-  //     pid_setpoint += 0.05; //If the PID setpoint is smaller then -0.5 increase the setpoint with 0.05 every loop
-  //   else
-  //     pid_setpoint = 0; //If the PID setpoint is smaller then 0.5 or larger then -0.5 set the setpoint to 0
-  // }
-
-  //The self balancing point is adjusted when there is not forward or backwards movement from the transmitter.
-  //This way the robot will always find it's balancing point
-  if (pid_setpoint == 0)
-  { //If the setpoint is zero degrees
-    if (pid_output < 0)
-      self_balance_pid_setpoint += 0.005; //Increase the self_balance_pid_setpoint if the robot is still moving forewards
-    if (pid_output > 0)
-      self_balance_pid_setpoint -= 0.005; //Decrease the self_balance_pid_setpoint if the robot is still moving backwards
-  }
 }
 
 unsigned long pid2delay(float pid_value)
@@ -396,18 +340,74 @@ int pid2step(float pid_value)
     return 0;
 }
 
-void calcMotors()
+void calcMove()
 {
-  left_delay_us = pid2delay(pid_output_left);
-  right_delay_us = pid2delay(pid_output_right);
+  if (move_byte & B00000001)
+  {                                    //If the first bit of the receive byte is set change the left and right variable to turn the robot to the left
+    pid_output_left += turn_speed;  //Increase the left motor speed
+    pid_output_right -= turn_speed; //Decrease the right motor speed
+  }
+  if (move_byte & B00000010)
+  {                                    //If the second bit of the receive byte is set change the left and right variable to turn the robot to the right
+    pid_output_left -= turn_speed;  //Decrease the left motor speed
+    pid_output_right += turn_speed; //Increase the right motor speed
+  }
 
-  left_step = pid2step(pid_output_left);
-  right_step = pid2step(pid_output_right);
+  if (move_byte & B00000100)
+  { //If the third bit of the receive byte is set change the left and right variable to turn the robot to the right
+    if (pid_setpoint > -1 && pid_output > move_speed * -1)
+      pid_setpoint -= 0.005; //Slowly change the setpoint angle so the robot starts leaning forewards
+    if (pid_setpoint < -1.5)
+      pid_setpoint += 0.1;
+  }
 
-  // Serial.print(F("l_delay:"));
-  // Serial.println(left_delay);
-  // Serial.print(F("r_delay:"));
-  // Serial.println(right_delay);
+  if (move_byte & B00001000)
+  { //If the forth bit of the receive byte is set change the left and right variable to turn the robot to the right
+    if (pid_setpoint < 1 && pid_output < move_speed)
+      pid_setpoint += 0.005; //Slowly change the setpoint angle so the robot starts leaning backwards
+    if (pid_setpoint > 1.5)
+      pid_setpoint -= 0.1;
+  }
+
+  if (!(move_byte & B00001100))
+  { 
+    //Slowly reduce the setpoint to zero if no foreward or backward command is given
+    if (pid_setpoint > 0.5)
+      pid_setpoint -= 0.05; //If the PID setpoint is larger then 0.5 reduce the setpoint with 0.05 every loop
+    else if (pid_setpoint < -0.5)
+      pid_setpoint += 0.05; //If the PID setpoint is smaller then -0.5 increase the setpoint with 0.05 every loop
+    else
+      pid_setpoint = 0; //If the PID setpoint is smaller then 0.5 or larger then -0.5 set the setpoint to 0
+  }
+
+  //The self balancing point is adjusted when there is not forward or backwards movement from the transmitter.
+  //This way the robot will always find it's balancing point
+  if (pid_setpoint == 0)
+  { //If the setpoint is zero degrees
+    if (pid_output < 0)
+      self_balance_pid_setpoint += 0.005; //Increase the self_balance_pid_setpoint if the robot is still moving forewards
+    if (pid_output > 0)
+      self_balance_pid_setpoint -= 0.005; //Decrease the self_balance_pid_setpoint if the robot is still moving backwards
+  }
+}
+
+void stepMotors()
+{
+  t = micros();
+  if (t - left_step_time_us >= left_delay_mem_us)
+  {
+    left_step_time_us = t;
+    left_delay_mem_us = pid2delay(pid_output_left);
+    if (pid_output_left != 0)
+      stepperL.step(pid2step(pid_output_left));
+  }
+  if (t - right_step_time_us >= right_delay_mem_us)
+  {
+    right_step_time_us = t;
+    right_delay_mem_us = pid2delay(pid_output_right);
+    if (pid_output_right != 0)
+      stepperR.step(pid2step(pid_output_right));
+  }
 }
 
 void loop()
@@ -462,30 +462,17 @@ void loop()
     {
       calcPid();
       calcMove();
-      calcMotors();
-      // while (next_loop_time_us > micros() + 200)
-      // {
-        t = micros();
-        if (left_step != 0 && left_delay_us > 0 && t - left_step_time_us >= left_delay_mem_us)
-        {
-          left_step_time_us = t;
-          left_delay_mem_us = left_delay_us;
-          stepperL.step(left_step);
-        }
-        if (right_step != 0 && right_delay_us > 0 && t - right_step_time_us >= right_delay_mem_us)
-        {
-          right_step_time_us = t;
-          right_delay_mem_us = right_delay_us;
-          stepperR.step(right_step);
-        }
-      // }
+      while (next_loop_time_us > micros() + 200)
+      {
+        stepMotors();
+      }
     }
     else
     {
       stop();
     }
   }
-  // while (next_loop_time_us > micros())
-  //   ;
-  // next_loop_time_us = micros() + loop_time_us;
+  while (next_loop_time_us > micros())
+    ;
+  next_loop_time_us = micros() + loop_time_us;
 }

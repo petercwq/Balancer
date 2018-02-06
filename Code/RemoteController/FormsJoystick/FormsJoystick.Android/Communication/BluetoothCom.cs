@@ -159,6 +159,7 @@ namespace FormsJoystick.Droid.Communication
             try
             {
                 BTOutputStream.Write(command);
+                BTOutputStream.Flush();
                 return true;
             }
             catch (System.Exception Ex)
@@ -173,6 +174,7 @@ namespace FormsJoystick.Droid.Communication
             try
             {
                 BTOutputStream.Write(command, offset > 0 ? offset : 0, count > 0 ? count : command.Length);
+                BTOutputStream.Flush();
                 return true;
             }
             catch (System.Exception Ex)

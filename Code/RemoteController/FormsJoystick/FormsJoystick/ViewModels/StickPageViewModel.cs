@@ -10,7 +10,7 @@ namespace FormsJoystick.ViewModels
         const int TIMER_INTERVAL = 40;
         const int VOL_REQ_COUNT = 5000 / 40;
 
-        private int vol_req_counter = 0;
+        private int vol_req_counter = 1;
 
         public StickPageViewModel()
         {
@@ -79,10 +79,10 @@ namespace FormsJoystick.ViewModels
 
                             if(BTCom.Connected && (vol_req_counter++)%VOL_REQ_COUNT==0)
                             {
-                                PushNewCommand(new CmdPacket{Command = 0x05, Value = 0x00, Callback = (obj) => {
-                                    Voltage = obj / 10.0f;
+                                PushNewCommand(new CmdPacket{Command = 0x05, Value = 0xff, HasReturn=true, Callback = ret => {
+                                    Voltage = ret / 10.0f;
                                     }});
-                                vol_req_counter = 0;
+                                vol_req_counter = 1;
                             }
 
                             return true;

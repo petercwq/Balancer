@@ -1,68 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ContentPage xmlns="http://xamarin.com/schemas/2014/forms" 
-                        xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" 
-                        xmlns:Views="clr-namespace:FormsJoystick.Views" 
-                        xmlns:CustomControls="clr-namespace:FormsJoystick.CustomControls" 
-                        xmlns:ValueConverters="clr-namespace:FormsJoystick.ValueConverters" 
-                        xmlns:ViewModels="clr-namespace:FormsJoystick.ViewModels" 
-                        x:Class="FormsJoystick.Views.ConfigPage"
-             Title="Config">
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" xmlns:Views="clr-namespace:FormsJoystick.Views" xmlns:CustomControls="clr-namespace:FormsJoystick.CustomControls" xmlns:ValueConverters="clr-namespace:FormsJoystick.ValueConverters" xmlns:ViewModels="clr-namespace:FormsJoystick.ViewModels" x:Class="FormsJoystick.Views.ConfigPage" Title="Config">
     <ContentPage.BindingContext>
-        <ViewModels:ConfigPageViewModel/>
+        <ViewModels:ConfigPageViewModel />
     </ContentPage.BindingContext>
     <StackLayout HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand" Orientation="Vertical">
-        <StackLayout Orientation="Horizontal"  Margin="10">
-            <Label Text="PID P:" WidthRequest="50"/>
-            <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F2}'}"
-               BindingContext="{x:Reference Name=slider1}" WidthRequest="50" />
-            <Slider x:Name="slider1"
-                Maximum="30.0"
-                Minimum="1.0"
-                HorizontalOptions="FillAndExpand" />
+        <StackLayout Orientation="Horizontal" Margin="10">
+            <Label Text="PID P:" WidthRequest="50" />
+            <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F2}'}" BindingContext="{x:Reference Name=slider1}" WidthRequest="50" />
+            <Slider x:Name="slider1" Maximum="30.0" Minimum="1.0" Value="{Binding P, Mode=TwoWay}" HorizontalOptions="FillAndExpand" />
         </StackLayout>
-        <StackLayout Orientation="Horizontal"  Margin="10">
-            <Label Text="PID I:" WidthRequest="50"/>
-            <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F2}'}"
-               BindingContext="{x:Reference Name=slider2}" WidthRequest="50" />
-            <Slider x:Name="slider2"
-               Maximum="5.0" 
-               Minimum="0.0" 
-               HorizontalOptions="FillAndExpand" />
+        <StackLayout Orientation="Horizontal" Margin="10">
+            <Label Text="PID I:" WidthRequest="50" />
+            <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F2}'}" BindingContext="{x:Reference Name=slider2}" WidthRequest="50" />
+            <Slider x:Name="slider2" Maximum="5.0" Minimum="0.0" Value="{Binding I, Mode=TwoWay}" HorizontalOptions="FillAndExpand" />
         </StackLayout>
-        <StackLayout Orientation="Horizontal"  Margin="10">
-            <Label Text="PID D:" WidthRequest="50"/>
-            <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F2}'}"
-               BindingContext="{x:Reference Name=slider3}" WidthRequest="50" />
-            <Slider x:Name="slider3"
-                Maximum="100.0"
-                Minimum="0.0"
-                HorizontalOptions="FillAndExpand" />
+        <StackLayout Orientation="Horizontal" Margin="10">
+            <Label Text="PID D:" WidthRequest="50" />
+            <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F2}'}" BindingContext="{x:Reference Name=slider3}" WidthRequest="50" />
+            <Slider x:Name="slider3" Maximum="100.0" Minimum="0.0" Value="{Binding D, Mode=TwoWay}" HorizontalOptions="FillAndExpand" />
         </StackLayout>
-        <StackLayout Orientation="Horizontal"  Margin="10">
-            <Label Text="Turn Speed:" WidthRequest="100"/>
-            <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F0}'}"
-               BindingContext="{x:Reference Name=slider4}" WidthRequest="40" />
-            <Slider x:Name="slider4"
-                Maximum="100.0"
-                Minimum="0.0"
-                HorizontalOptions="FillAndExpand" />
+        <StackLayout Orientation="Horizontal" Margin="10">
+            <Label Text="Turn Speed:" WidthRequest="100" />
+            <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F0}'}" BindingContext="{x:Reference Name=slider4}" WidthRequest="40" />
+            <Slider x:Name="slider4" Maximum="50" Minimum="20" Value="{Binding Turn, Mode=TwoWay}" HorizontalOptions="FillAndExpand" />
         </StackLayout>
-        <StackLayout Orientation="Horizontal"  Margin="10">
-            <Label Text="Move Speed:" WidthRequest="100"/>
-            <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F0}'}"
-               BindingContext="{x:Reference Name=slider5}" WidthRequest="40" />
-            <Slider x:Name="slider5"
-                Maximum="100.0"
-                Minimum="0.0"
-                HorizontalOptions="FillAndExpand" />
+        <StackLayout Orientation="Horizontal" Margin="10">
+            <Label Text="Move Speed:" WidthRequest="100" />
+            <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F0}'}" BindingContext="{x:Reference Name=slider5}" WidthRequest="40" />
+            <Slider x:Name="slider5" Maximum="150" Minimum="50" Value="{Binding Move, Mode=TwoWay}" HorizontalOptions="FillAndExpand" />
         </StackLayout>
-        <StackLayout Orientation="Horizontal" VerticalOptions="EndAndExpand"  Margin="10">
-            <Button Text="Calib Gyro" HorizontalOptions="CenterAndExpand" Command="CalibGyroCommand"/>
-            <Button Text="Calib Acc" HorizontalOptions="CenterAndExpand" Command="CalibAccCommand"/>
+        <StackLayout Orientation="Horizontal" VerticalOptions="EndAndExpand" Margin="10">
+            <Button Text="Calib Gyro" HorizontalOptions="CenterAndExpand" Command="{Binding CalibGyroCommand}" />
+            <Button Text="Calib Acc" HorizontalOptions="CenterAndExpand" Command="{Binding CalibAccCommand}" />
         </StackLayout>
-        <StackLayout Orientation="Horizontal" VerticalOptions="End"  Margin="10">
-            <Button Text="Read" HorizontalOptions="CenterAndExpand" Command="ReadCommand"/>
-            <Button Text="Write" HorizontalOptions="CenterAndExpand" Command="WriteCommand"/>
+        <StackLayout Orientation="Horizontal" VerticalOptions="End" Margin="10">
+            <Button Text="Read" HorizontalOptions="CenterAndExpand" Command="{Binding ReadCommand}" />
+            <Button Text="Write" HorizontalOptions="CenterAndExpand" Command="{Binding WriteCommand}" />
+            <Button Text="Reset" HorizontalOptions="CenterAndExpand" Command="{Binding ResetCommand}" />
         </StackLayout>
     </StackLayout>
 </ContentPage>
