@@ -16,7 +16,7 @@ const int acc_raw_limit = 8200;
 unsigned long next_loop_time_us, next_voltage_loop_time_ms, last_gyro_time_us, t;
 int bat_vol;
 
-float pid_p = 10, pid_i = 0.4, pid_d = 5;
+float pid_p = 15, pid_i = 1.5, pid_d = 0;
 byte start, low_bat, receive_counter, move_byte, reply_buf[2];
 
 Stepper stepperL(200, 4, 5, 6, 7);
