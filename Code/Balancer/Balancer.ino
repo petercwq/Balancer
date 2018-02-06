@@ -16,7 +16,7 @@ const int acc_raw_limit = 8200;
 unsigned long next_loop_time_us, next_voltage_loop_time_ms, last_gyro_time_us, t;
 int bat_vol;
 
-float pid_p = 6, pid_i = 0.6, pid_d = 15;
+float pid_p = 10, pid_i = 0.4, pid_d = 5;
 byte start, low_bat, receive_counter, move_byte, reply_buf[2];
 
 Stepper stepperL(200, 4, 5, 6, 7);
@@ -28,7 +28,7 @@ const float stop_angle = 30, start_angle = 0.3;
 unsigned long left_step_time_us, right_step_time_us, left_delay_mem_us, right_delay_mem_us;
 
 float self_balance_pid_setpoint, pid_setpoint, pid_i_mem, pid_last_d_error, pid_error_temp, pid_output, pid_output_left, pid_output_right;
-float max_pid_out = 230;
+float max_pid_out = 400;
 // turn: 20 ~ 50, move: 50 ~ 150
 byte turn_speed = 30, move_speed = 100;
 
@@ -265,7 +265,7 @@ void updateAngle()
   //Compensate the gyro offset when the robot is rotating
   //angle_gyro -= gyro_yaw_data_raw * 0.0000003;
   //Correct the drift of the gyro angle with the accelerometer angle
-  angle_comp = angle_gyro * 0.99 + angle_acc * 0.01;
+  angle_comp = angle_gyro * 0.998 + angle_acc * 0.002;
 
   if (angle_comp > stop_angle || angle_comp < -stop_angle)
   {
@@ -291,7 +291,7 @@ void stop()
 
 // STH 39D236, 1000ms ~ 4ms, vibration at 20~40ms
 // speed from 1 ~ 250 step/sec
-// PID from angle [-2, 2] map to speed [-200, 200]
+// PID from angle [-2, 2] map to speed [-500, 500]
 void calcPid()
 {
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -312,7 +312,7 @@ void calcPid()
 
   pid_last_d_error = pid_error_temp; //Store the error for the next loop
 
-  if (abs(pid_output) < 10)
+  if (abs(pid_output) < 2)
     pid_output = 0; //Create a dead-band to stop the motors when the robot is balanced
 
   pid_output_left = pid_output;  //Copy the controller output to the pid_output_left variable for the left motor
@@ -325,7 +325,7 @@ unsigned long pid2delay(float pid_value)
 {
   if (pid_value != 0)
   {
-    return (unsigned long)abs(1000000.0f / pid_value); // + 1
+    return (unsigned long)abs(2000000.0f / pid_value); // + 1
   }
   return 0;
 }
