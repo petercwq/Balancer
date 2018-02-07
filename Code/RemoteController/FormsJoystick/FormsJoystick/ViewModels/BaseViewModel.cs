@@ -4,11 +4,15 @@ using System.Collections.Concurrent;
 using System.ComponentModel;
 using Xamarin.Forms;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace FormsJoystick.ViewModels
 {
     public class CmdPacket
     {
+        public const byte START = (byte)'$';
+        public const int LEN = 3;
+
         public CmdPacket()
         {
             Timestamp = DateTime.Now.Ticks;
@@ -18,8 +22,8 @@ namespace FormsJoystick.ViewModels
         public byte Value;
         public long Timestamp;
 
-        public bool HasReturn;
-        public Action<byte> Callback;
+        //public bool HasReturn;
+        //public Action<byte> Callback;
     }
 
     public abstract class BaseViewModel : INotifyPropertyChanged
@@ -33,10 +37,19 @@ namespace FormsJoystick.ViewModels
 
         protected static IBluetoothCom BTCom = DependencyService.Get<IBluetoothCom>();
         static ConcurrentQueue<CmdPacket> ToSend = new ConcurrentQueue<CmdPacket>();
+        static Queue<byte> ToProcess = new Queue<byte>();
+        static Dictionary<byte, Action<byte>> Processers = new Dictionary<byte, Action<byte>>();
+
+        private byte[] buffer = new byte[CmdPacket.LEN];
 
         protected void PushNewCommand(CmdPacket packet)
         {
             ToSend.Enqueue(packet);
+        }
+
+        protected void RegisterProcesser(byte command, Action<byte> processer)
+        {
+            Processers[command] = processer;
         }
 
         public BaseViewModel()
@@ -50,42 +63,48 @@ namespace FormsJoystick.ViewModels
                         CmdPacket pack = null;
                         if (ToSend.TryDequeue(out pack))
                         {
-                            if (Math.Abs(DateTime.Now.Ticks - pack.Timestamp) < 5 * 10000000)
-                            {
-                                if (!BTCom.SendData(new byte[] { pack.Command, pack.Value }))
+                            //if (Math.Abs(DateTime.Now.Ticks - pack.Timestamp) < 5 * 10000000)
+                            //{
+                                if (!BTCom.SendData(new byte[] { CmdPacket.START, pack.Command, pack.Value }))
                                 {
                                     BTCom.Close();
-                                }
-                                else if (pack.HasReturn)
-                                {
-                                    var buffer = new byte[2];
-                                    var index = 0;
-                                    var start = DateTime.Now;
-                                    while (BTCom.Connected && DateTime.Now - start < TimeSpan.FromMilliseconds(10))
-                                    {
-                                        var readed = BTCom.ReadData(buffer, index, buffer.Length - index);
-                                        index += readed;
-
-                                        if (index == buffer.Length)
-                                        {
-                                            if (buffer[0] == pack.Command)
-                                            {
-                                                pack.Callback?.Invoke(buffer[1]);
-                                                break;
-                                            }
-                                            else
-                                            {
-                                                index = 0;
-                                            }
-                                        }
-                                        Task.Delay(2).Wait();
-                                    }
-                                }
-                            }
+                                }                               
+                            //}
                         }
                         else
                         {
                             break;
+                        }
+                    }
+                }
+                return true;
+            });
+
+            Device.StartTimer(TimeSpan.FromMilliseconds(10), () =>
+            {
+                if (BTCom.Connected)
+                {
+                    var readed = 0;
+                    do
+                    {
+                        readed = BTCom.ReadData(buffer, 0, buffer.Length);
+                        for (int i = 0; i < readed; i++)
+                            ToProcess.Enqueue(buffer[i]);
+
+                    } while (readed == buffer.Length);
+
+                    while(ToProcess.Count >= CmdPacket.LEN)
+                    {
+                        if (ToProcess.Dequeue() != '$')
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            var cmd = ToProcess.Dequeue();
+                            var val = ToProcess.Dequeue();
+                            if (Processers.ContainsKey(cmd))
+                                Processers[cmd]?.Invoke(val);
                         }
                     }
                 }

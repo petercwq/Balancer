@@ -16,8 +16,8 @@ const int acc_raw_limit = 8200;
 unsigned long next_loop_time_us, next_voltage_loop_time_ms, last_gyro_time_us, t;
 int bat_vol;
 
-float pid_p = 15, pid_i = 1.5, pid_d = 0;
-byte start, low_bat, receive_counter, move_byte, reply_buf[2];
+float pid_p = 8, pid_i = 0.5, pid_d = 10;
+byte start, low_bat, receive_counter, move_byte, receive_index, receive_buffer[3], reply_buf[3] = {'$', 0, 0};
 
 Stepper stepperL(200, 4, 5, 6, 7);
 Stepper stepperR(200, 8, 9, 10, 12);
@@ -28,7 +28,8 @@ const float stop_angle = 30, start_angle = 0.3;
 unsigned long left_step_time_us, right_step_time_us, left_delay_mem_us, right_delay_mem_us;
 
 float self_balance_pid_setpoint, pid_setpoint, pid_i_mem, pid_last_d_error, pid_error_temp, pid_output, pid_output_left, pid_output_right;
-float max_pid_out = 400;
+float pid_out_max = 200, pid_out_dead_band = 5;
+
 // turn: 20 ~ 50, move: 50 ~ 150
 byte turn_speed = 30, move_speed = 100;
 
@@ -130,8 +131,9 @@ void setup()
   next_loop_time_us = t + loop_time_us;
 }
 
-void processCmd(byte cmd, byte val)
+void processCmd()
 {
+  // START with $
   // received protocol                                 |   reply
   // cmd_byte val_byte                                 |   cmd_byte val_byte
   // 0x01     0b00000001 - turn left (ccw)             |
@@ -147,8 +149,11 @@ void processCmd(byte cmd, byte val)
   // 0x07     0~100      - set, get turn speed         |   0x07     turn_speed
   // 0x08     0~100      - set, get move speed         |   0x08     move_speed
 
-  reply_buf[0] = cmd;
-  reply_buf[1] = 0x00;
+  byte cmd = receive_buffer[1];
+  byte val = receive_buffer[2];
+  reply_buf[1] = cmd;
+  reply_buf[2] = 0x00;
+
   switch (cmd)
   {
   case 0x01:
@@ -157,38 +162,38 @@ void processCmd(byte cmd, byte val)
   case 0x02:
     if (val != 0xFF)
     {
-      pid_p = float(val) / 10.0;
-      reply_buf[1] = val;
+      pid_p = val / 10.0f;
+      reply_buf[2] = val;
     }
     else
     {
-      reply_buf[1] = byte(pid_p * 10);
+      reply_buf[2] = (byte)(pid_p * 10);
     }
     break;
   case 0x03:
     if (val != 0xFF)
     {
-      pid_i = float(val) / 10.0;
-      reply_buf[1] = val;
+      pid_i =  val / 10.0f;
+      reply_buf[2] = val;
     }
     else
     {
-      reply_buf[1] = byte(pid_i * 10);
+      reply_buf[2] = (byte)(pid_i * 10);
     }
     break;
   case 0x04:
     if (val != 0xFF)
     {
-      pid_d = float(val) / 10.0;
-      reply_buf[1] = val;
+      pid_d = val / 10.0f;
+      reply_buf[2] = val;
     }
     else
     {
-      reply_buf[1] = byte(pid_d * 10);
+      reply_buf[2] = (byte)(pid_d * 10);
     }
     break;
   case 0x05:
-    reply_buf[1] = byte(bat_vol / 10);
+    reply_buf[2] = (byte)(bat_vol / 10);
     break;
   case 0x06:
     calibrate(val);
@@ -198,21 +203,21 @@ void processCmd(byte cmd, byte val)
     {
       turn_speed = val;
     }
-    reply_buf[1] = turn_speed;
+    reply_buf[2] = turn_speed;
     break;
   case 0x08:
     if (val != 0xFF)
     {
       move_speed = val;
     }
-    reply_buf[1] = move_speed;
+    reply_buf[2] = move_speed;
     break;
   default:
     break;
   }
-  if (reply_buf[1] != 0x00)
+  if (reply_buf[2] != 0x00)
   {
-    Serial.write(reply_buf, 2);
+    Serial.write((uint8_t *)reply_buf, sizeof(reply_buf));
   }
 }
 
@@ -236,7 +241,8 @@ void updateAngle()
   {
     //If the accelerometer angle is almost 0
     angle_gyro = angle_acc; //Load the accelerometer angle in the angle_gyro variable
-    start = 1;              //Set the start variable to start the PID controller
+    last_gyro_time_us = micros();
+    start = 1; //Set the start variable to start the PID controller
   }
 
   Wire.beginTransmission(gyro_address); //Start communication with the gyro
@@ -245,7 +251,8 @@ void updateAngle()
   Wire.requestFrom(gyro_address, 4);    //Request 4 bytes from the gyro, GYRO_XOUT_H, GYRO_XOUT_L, GYRO_YOUT_H, GYRO_YOUT_L
   int gyro_yaw_data_raw = (Wire.read() << 8 | Wire.read()) - (int)gyro_yaw_calib_value;
   // 500°/s / 2^16 * loop_time = 0.00762939453125 * loop_time
-  angle_gyro += float((Wire.read() << 8 | Wire.read()) - (int)gyro_pitch_calib_value) * 0.0076294 * (micros() - last_gyro_time_us) / 1000000.0; //Calculate the traveled during this loop angle and add this to the angle_gyro variable
+  angle_gyro += ((Wire.read() << 8 | Wire.read()) - (int)gyro_pitch_calib_value) * 0.0076294f * (micros() - last_gyro_time_us) / 1000000.0f;
+  //Calculate the traveled during this loop angle and add this to the angle_gyro variable
   last_gyro_time_us = micros();
 
 #ifdef DEBUG
@@ -271,7 +278,7 @@ void updateAngle()
   {
     start = 0;
   }
-  
+
 #ifdef DEBUG
   Serial.print(F("comp ang:"));
   Serial.println(angle_comp);
@@ -304,15 +311,15 @@ void calcPid()
 
   //Calculate the I-controller value and add it to the pid_i_mem variable
   pid_i_mem += pid_i * pid_error_temp;
-  pid_i_mem = constrain(pid_i_mem, -max_pid_out, max_pid_out);
+  pid_i_mem = constrain(pid_i_mem, -pid_out_max, pid_out_max);
 
   //Calculate the PID output value
   pid_output = pid_p * pid_error_temp + pid_i_mem + pid_d * (pid_error_temp - pid_last_d_error);
-  pid_output = constrain(pid_output, -max_pid_out, max_pid_out);
+  pid_output = constrain(pid_output, -pid_out_max, pid_out_max);
 
   pid_last_d_error = pid_error_temp; //Store the error for the next loop
 
-  if (abs(pid_output) < 2)
+  if (abs(pid_output) < pid_out_dead_band)
     pid_output = 0; //Create a dead-band to stop the motors when the robot is balanced
 
   pid_output_left = pid_output;  //Copy the controller output to the pid_output_left variable for the left motor
@@ -325,7 +332,18 @@ unsigned long pid2delay(float pid_value)
 {
   if (pid_value != 0)
   {
-    return (unsigned long)abs(2000000.0f / pid_value); // + 1
+    // if (pid_value > 0)
+    //   pid_value = (pid_out_max + pid_out_dead_band) - (1 / (pid_value + 9)) * 5500;
+    // else if (pid_value < 0)
+    //   pid_value = -(pid_out_max + pid_out_dead_band) - (1 / (pid_value - 9)) * 5500;
+
+    // if (pid_value > 0)
+    //   pid_value = pid_out_max - pid_value;
+    // else if (pid_value < 0)
+    //   pid_value = -pid_out_max - pid_value;
+
+    // return (unsigned long)(pid_value * 20);
+    return (unsigned long)fabs(1000000.0f / pid_value); // + 1
   }
   return 0;
 }
@@ -343,12 +361,12 @@ int pid2step(float pid_value)
 void calcMove()
 {
   if (move_byte & B00000001)
-  {                                    //If the first bit of the receive byte is set change the left and right variable to turn the robot to the left
+  {                                 //If the first bit of the receive byte is set change the left and right variable to turn the robot to the left
     pid_output_left += turn_speed;  //Increase the left motor speed
     pid_output_right -= turn_speed; //Decrease the right motor speed
   }
   if (move_byte & B00000010)
-  {                                    //If the second bit of the receive byte is set change the left and right variable to turn the robot to the right
+  {                                 //If the second bit of the receive byte is set change the left and right variable to turn the robot to the right
     pid_output_left -= turn_speed;  //Decrease the left motor speed
     pid_output_right += turn_speed; //Increase the right motor speed
   }
@@ -370,7 +388,7 @@ void calcMove()
   }
 
   if (!(move_byte & B00001100))
-  { 
+  {
     //Slowly reduce the setpoint to zero if no foreward or backward command is given
     if (pid_setpoint > 0.5)
       pid_setpoint -= 0.05; //If the PID setpoint is larger then 0.5 reduce the setpoint with 0.05 every loop
@@ -422,7 +440,7 @@ void loop()
   if (millis() > next_voltage_loop_time_ms)
   {
     next_voltage_loop_time_ms = millis() + voltage_loop_time_ms;
-    bat_vol = (analogRead(0) * 1.466) + diode_voltage;
+    bat_vol = (int)(analogRead(0) * 1.466) + diode_voltage;
     if (bat_vol < battery_low_thresh && bat_vol > battery_high_thresh)
     {              //If batteryvoltage is below 11.1V and higher than 8.0V
       low_bat = 1; //Set the low_bat variable to 1
@@ -436,8 +454,17 @@ void loop()
   // process remote controll
   while (Serial.available() > 0)
   {
-    //If there is serial data available
-    processCmd(Serial.read(), Serial.read());
+    byte rec = Serial.read();
+    if(receive_index == 0 && rec != '$')
+    {
+      continue;
+    }
+    receive_buffer[receive_index++] = rec;
+    if (receive_index == sizeof(receive_buffer))
+    {
+      processCmd();
+      receive_index = 0;
+    }
     receive_counter = 0;
   }
   if (receive_counter <= 25)

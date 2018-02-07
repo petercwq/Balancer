@@ -12,5 +12,6 @@ namespace FormsJoystick.Communication
         bool SendData(byte[] command, int offset = 0, int count = 0);
         bool Connected { get; }
         int ReadData(byte[] buffer, int offset, int count);
+        //bool IsDataAvaliable { get; }
     }
 }

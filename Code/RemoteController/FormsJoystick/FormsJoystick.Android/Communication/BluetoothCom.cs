@@ -37,6 +37,11 @@ namespace FormsJoystick.Droid.Communication
             get { return opened; }
         }
 
+        //public bool IsDataAvaliable
+        //{
+        //    get { return opened && BTInputStream != null && BTInputStream.BaseStream.CanRead && BTInputStream.BaseStream.IsDataAvailable(); }
+        //}
+
         // this will find a bluetooth printer device
         public bool FindDevice(string deviceName)
         {
@@ -159,7 +164,6 @@ namespace FormsJoystick.Droid.Communication
             try
             {
                 BTOutputStream.Write(command);
-                BTOutputStream.Flush();
                 return true;
             }
             catch (System.Exception Ex)
@@ -174,7 +178,6 @@ namespace FormsJoystick.Droid.Communication
             try
             {
                 BTOutputStream.Write(command, offset > 0 ? offset : 0, count > 0 ? count : command.Length);
-                BTOutputStream.Flush();
                 return true;
             }
             catch (System.Exception Ex)
@@ -188,7 +191,10 @@ namespace FormsJoystick.Droid.Communication
         {
             try
             {
-                return BTInputStream.Read(buffer, offset, count);
+                var c = 0;
+                while (BTInputStream.BaseStream.IsDataAvailable() && c++ < count)
+                    BTInputStream.Read(buffer, offset++, 1);
+                return c - 1;
             }
             catch (System.Exception Ex)
             {

@@ -33,6 +33,12 @@ namespace FormsJoystick.ViewModels
 
         public ConfigPageViewModel()
         {
+            RegisterProcesser(0x02,ret => P = ret / 10.0f );
+            RegisterProcesser(0x03, ret => I = ret / 10.0f);
+            RegisterProcesser(0x04, ret => D = ret / 10.0f);
+            RegisterProcesser(0x07, ret => Turn = ret);
+            RegisterProcesser(0x08, ret => Move = ret);
+
             ResetCommand = new Command(() =>
             {
                 P = 15;
@@ -54,20 +60,20 @@ namespace FormsJoystick.ViewModels
 
             ReadCommand = new Command(() =>
             {
-                PushNewCommand(new CmdPacket() { Command = 0x02, Value = 0xff, HasReturn = true, Callback = ret => P = ret / 10.0f });
-                PushNewCommand(new CmdPacket() { Command = 0x03, Value = 0xff, HasReturn = true, Callback = ret => I = ret / 10.0f });
-                PushNewCommand(new CmdPacket() { Command = 0x04, Value = 0xff, HasReturn = true, Callback = ret => D = ret / 10.0f });
-                PushNewCommand(new CmdPacket() { Command = 0x07, Value = 0xff, HasReturn = true, Callback = ret => Turn = ret });
-                PushNewCommand(new CmdPacket() { Command = 0x08, Value = 0xff, HasReturn = true, Callback = ret => Move = ret });
+                PushNewCommand(new CmdPacket() { Command = 0x02, Value = 0xff});
+                PushNewCommand(new CmdPacket() { Command = 0x03, Value = 0xff});
+                PushNewCommand(new CmdPacket() { Command = 0x04, Value = 0xff});
+                PushNewCommand(new CmdPacket() { Command = 0x07, Value = 0xff});
+                PushNewCommand(new CmdPacket() { Command = 0x08, Value = 0xff});
             });
 
             WriteCommand = new Command(() =>
             {
-                PushNewCommand(new CmdPacket() { Command = 0x02, Value = (byte)(P * 10), HasReturn = true, Callback = ret => P = ret / 10.0f });
-                PushNewCommand(new CmdPacket() { Command = 0x03, Value = (byte)(I * 10), HasReturn = true, Callback = ret => I = ret / 10.0f });
-                PushNewCommand(new CmdPacket() { Command = 0x04, Value = (byte)(D * 10), HasReturn = true, Callback = ret => D = ret / 10.0f });
-                PushNewCommand(new CmdPacket() { Command = 0x07, Value = (byte)(Turn), HasReturn = true, Callback = ret => Turn = ret });
-                PushNewCommand(new CmdPacket() { Command = 0x08, Value = (byte)(Move), HasReturn = true, Callback = ret => Move = ret });
+                PushNewCommand(new CmdPacket() { Command = 0x02, Value = (byte)(P * 10)});
+                PushNewCommand(new CmdPacket() { Command = 0x03, Value = (byte)(I * 10)});
+                PushNewCommand(new CmdPacket() { Command = 0x04, Value = (byte)(D * 10)});
+                PushNewCommand(new CmdPacket() { Command = 0x07, Value = (byte)(Turn)});
+                PushNewCommand(new CmdPacket() { Command = 0x08, Value = (byte)(Move)});
             });
 
             ResetCommand.Execute(null);

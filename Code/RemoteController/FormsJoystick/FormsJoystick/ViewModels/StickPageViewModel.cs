@@ -14,6 +14,8 @@ namespace FormsJoystick.ViewModels
 
         public StickPageViewModel()
         {
+            RegisterProcesser(0x05, ret => Voltage = ret / 10.0f);
+
             ConnectCommand = new Command(execute: async () =>
             {
                 IsBusy = true;
@@ -77,11 +79,9 @@ namespace FormsJoystick.ViewModels
                                 }
                             }
 
-                            if(BTCom.Connected && (vol_req_counter++)%VOL_REQ_COUNT==0)
+                            if (BTCom.Connected && (vol_req_counter++) % VOL_REQ_COUNT == 0)
                             {
-                                PushNewCommand(new CmdPacket{Command = 0x05, Value = 0xff, HasReturn=true, Callback = ret => {
-                                    Voltage = ret / 10.0f;
-                                    }});
+                                PushNewCommand(new CmdPacket { Command = 0x05, Value = 0xff });
                                 vol_req_counter = 1;
                             }
 
