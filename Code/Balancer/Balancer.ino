@@ -28,7 +28,7 @@ const float stop_angle = 30, start_angle = 0.3;
 unsigned long left_step_time_us, right_step_time_us, left_delay_mem_us, right_delay_mem_us;
 
 float self_balance_pid_setpoint, pid_setpoint, pid_i_mem, pid_last_d_error, pid_error_temp, pid_output, pid_output_left, pid_output_right;
-float pid_out_max = 200, pid_out_dead_band = 5;
+float pid_out_max = 200, pid_out_dead_band = 3;
 
 // turn: 20 ~ 50, move: 50 ~ 150
 byte turn_speed = 30, move_speed = 100;
