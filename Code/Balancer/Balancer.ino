@@ -16,7 +16,7 @@ const int acc_raw_limit = 8200;
 unsigned long next_loop_time_us, next_voltage_loop_time_ms, last_gyro_time_us, t;
 int bat_vol;
 
-float pid_p = 8, pid_i = 0.5, pid_d = 10;
+float pid_p = 25, pid_i = 0.4, pid_d = 5;
 byte start, low_bat, receive_counter, move_byte, receive_index, receive_buffer[3], reply_buf[3] = {'$', 0, 0};
 
 Stepper stepperL(200, 4, 5, 6, 7);
@@ -173,7 +173,7 @@ void processCmd()
   case 0x03:
     if (val != 0xFF)
     {
-      pid_i =  val / 10.0f;
+      pid_i = val / 10.0f;
       reply_buf[2] = val;
     }
     else
@@ -428,8 +428,9 @@ void stepMotors()
   }
 }
 
-void loop()
+void updateBatVoltage()
 {
+
   //Load the battery voltage to the battery_voltage variable.
   //diode_voltage_compensation is the voltage compensation for the diode.
   //Resistor voltage divider => (2k + 1k)/1k = 3
@@ -441,21 +442,24 @@ void loop()
   {
     next_voltage_loop_time_ms = millis() + voltage_loop_time_ms;
     bat_vol = (int)(analogRead(0) * 1.466) + diode_voltage;
-    if (bat_vol < battery_low_thresh && bat_vol > battery_high_thresh)
-    {              //If batteryvoltage is below 11.1V and higher than 8.0V
-      low_bat = 1; //Set the low_bat variable to 1
+    if (bat_vol < battery_low_thresh) // && bat_vol > battery_high_thresh)
+    {                                 //If batteryvoltage is below 11.1V and higher than 8.0V
+      low_bat = 1;                    //Set the low_bat variable to 1
     }
 #ifdef DEBUG
     Serial.print(F("vol: "));
     Serial.println(float(bat_vol) / 100);
 #endif
   }
+}
 
+void readSerialInput()
+{
   // process remote controll
   while (Serial.available() > 0)
   {
     byte rec = Serial.read();
-    if(receive_index == 0 && rec != '$')
+    if (receive_index == 0 && rec != '$')
     {
       continue;
     }
@@ -474,6 +478,12 @@ void loop()
     //After 100 (25 * loop_time) milliseconds the received byte is deleted
     move_byte = 0x00;
   }
+}
+
+void loop()
+{
+  updateBatVoltage();
+  readSerialInput();
 
   if (low_bat == 1)
   {
