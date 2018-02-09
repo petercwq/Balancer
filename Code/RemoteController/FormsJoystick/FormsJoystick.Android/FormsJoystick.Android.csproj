@@ -138,6 +138,7 @@
     <Compile Include="Resources\Resource.Designer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Communication\BluetoothCom.cs" />
+    <Compile Include="CommandMessenger\Transport\Bluetooth\BluetoothTransport.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -165,6 +166,11 @@
     <AndroidResource Include="Resources\Drawable\stick.png" />
   </ItemGroup>
   <ItemGroup />
+  <ItemGroup>
+    <Folder Include="CommandMessenger\" />
+    <Folder Include="CommandMessenger\Transport\" />
+    <Folder Include="CommandMessenger\Transport\Bluetooth\" />
+  </ItemGroup>
   <Import Project="..\FormsJoystick\FormsJoystick.projitems" Label="Shared" Condition="Exists('..\FormsJoystick\FormsJoystick.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <Import Project="..\..\packages\Xamarin.Forms.2.5.0.122203\build\netstandard1.0\Xamarin.Forms.targets" Condition="Exists('..\..\packages\Xamarin.Forms.2.5.0.122203\build\netstandard1.0\Xamarin.Forms.targets')" />

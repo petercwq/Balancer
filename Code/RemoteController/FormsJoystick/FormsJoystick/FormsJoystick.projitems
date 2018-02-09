@@ -25,6 +25,34 @@
     </Compile>
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\StickPageViewModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Communication\IBluetoothCom.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\AsyncWorker.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\BinaryConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\CmdMessenger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\Command.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\CommandEventArgs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\CommunicationManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\ConnectionManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\Escaped.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\EventWaiter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\Logger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\ReceivedCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\ReceivedCommandSignal.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\SendCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\StringUtils.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\StructSerializer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\TimeUtils.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\Queue\CollapseCommandStrategy.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\Queue\CommandQueue.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\Queue\CommandStrategy.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\Queue\GeneralStrategy.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\Queue\ListQueue.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\Queue\ReceiveCommandQueue.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\Queue\SendCommandQueue.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\Queue\StaleGeneralStrategy.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\Queue\TopCommandStrategy.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\Transport\ITransport.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\Transport\Tcp\TcpConnectionManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandMessenger\Transport\Tcp\TcpTransport.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)Views\ConfigPage.xaml">
@@ -42,6 +70,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Communication\" />
+    <Folder Include="$(MSBuildThisFileDirectory)CommandMessenger\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)Views\MainPage.xaml">
