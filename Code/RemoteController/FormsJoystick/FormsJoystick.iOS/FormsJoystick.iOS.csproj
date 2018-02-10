@@ -99,6 +99,7 @@
     <ITunesArtwork Include="iTunesArtwork" />
     <ITunesArtwork Include="iTunesArtwork@2x" />
     <None Include="packages.config" />
+    <Compile Include="CommandMessenger\Transport\Bluetooth\BluetoothTransport.cs" />
   </ItemGroup>
   <ItemGroup>
     <BundleResource Include="Resources\Default-568h%402x.png" />
@@ -141,6 +142,9 @@
   </ItemGroup>
   <ItemGroup>
     <BundleResource Include="Resources\pad.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="CommandMessenger\" />
   </ItemGroup>
   <Import Project="..\FormsJoystick\FormsJoystick.projitems" Label="Shared" Condition="Exists('..\FormsJoystick\FormsJoystick.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />

@@ -6,7 +6,6 @@ namespace FormsJoystick.ViewModels
 {
     public class StickPageViewModel : BaseViewModel
     {
-        const string DEV_NAME = "EMS01_1152";
         const int TIMER_INTERVAL = 40;
         const int VOL_REQ_COUNT = 5000 / 40;
 
@@ -14,9 +13,11 @@ namespace FormsJoystick.ViewModels
 
         public StickPageViewModel()
         {
-            RegisterProcesser(0x05, ret => Voltage = ret / 10.0f);
+            AttachCommandAction(Commands.GetBattery, 
+                                ret => 
+                                Voltage = ret.ReadFloatArg());
 
-            ConnectCommand = new Command(execute: async () =>
+            ConnectCommand = new Command(() =>
             {
                 IsBusy = true;
                 Message = "";
@@ -24,23 +25,8 @@ namespace FormsJoystick.ViewModels
 
                 try
                 {
-                    if (ConnectText == "Connect")
+                    if (ConnectText == "Connect" && Connect())
                     {
-                        if (BTCom == null)
-                        {
-                            Message = "IBluetoothCom can't be initialized";
-                            return;
-                        }
-                        if (!BTCom.FindDevice(DEV_NAME))
-                        {
-                            Message = "Can't find device";
-                            return;
-                        }
-                        if (!await BTCom.ConnectAsync())
-                        {
-                            Message = "Can't connect device";
-                            return;
-                        }
                         Device.StartTimer(TimeSpan.FromMilliseconds(40), () =>
                         {
                             byte command = 0x00;
@@ -68,20 +54,12 @@ namespace FormsJoystick.ViewModels
                             if (_command != "00000000" || command != 0x00)
                             {
                                 Command = Convert.ToString(command, 2).PadLeft(8, '0');
-                                if (!BTCom.Connected)
-                                {
-                                    ConnectText = "Connect";
-                                    return false;
-                                }
-                                else
-                                {
-                                    PushNewCommand(new CmdPacket { Command = 0x01, Value = command });
-                                }
+                                QueueCommand(new CommandMessenger.SendCommand((int)Commands.Move, (short)command));
                             }
 
-                            if (BTCom.Connected && (vol_req_counter++) % VOL_REQ_COUNT == 0)
+                            if ((vol_req_counter++) % VOL_REQ_COUNT == 0)
                             {
-                                PushNewCommand(new CmdPacket { Command = 0x05, Value = 0xff });
+                                QueueCommand(new CommandMessenger.SendCommand((int)Commands.GetBattery));
                                 vol_req_counter = 1;
                             }
 
@@ -91,7 +69,7 @@ namespace FormsJoystick.ViewModels
                     }
                     else
                     {
-                        BTCom.Close();
+                        Disconnect();
                         ConnectText = "Connect";
                     }
                 }
@@ -100,7 +78,7 @@ namespace FormsJoystick.ViewModels
                     IsBusy = false;
                     (ConnectCommand as Command).ChangeCanExecute();
                 }
-            }, canExecute: () => !IsBusy);
+            }, () => !IsBusy);
         }
 
         private bool _isBusy;

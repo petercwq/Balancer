@@ -44,7 +44,6 @@ namespace CommandMessenger.Transport.Bluetooth
         private int _bufferFilled;
 
         // android built in classes for bluetooth operations
-        BluetoothAdapter BTAdapter;
         BluetoothSocket BTSocket;
         BluetoothDevice BTDevice;
 
@@ -58,7 +57,7 @@ namespace CommandMessenger.Transport.Bluetooth
         /// <summary>
         /// Gets or sets Bluetooth device info
         /// </summary>
-        public string DeviceAddress { get; set; }
+        public string DeviceName { get; set; }
 
         /// <summary>
         /// Bluetooth transport constructor
@@ -86,12 +85,12 @@ namespace CommandMessenger.Transport.Bluetooth
         }
 
         // this will find a bluetooth printer device
-        private bool FindDevice(string deviceAddress)
+        private bool FindDevice(string deviceName)
         {
 
             try
             {
-                BTAdapter = BluetoothAdapter.DefaultAdapter;
+                BluetoothAdapter BTAdapter = BluetoothAdapter.DefaultAdapter;
 
                 if (BTAdapter == null)
                 {
@@ -111,7 +110,7 @@ namespace CommandMessenger.Transport.Bluetooth
                 {
                     foreach (BluetoothDevice device in pairedDevices)
                     {
-                        if (device.Address == deviceAddress)//"RPP300"
+                        if (device.Name == deviceName)//"RPP300"
                         {
                             BTDevice = device;
                             break;
@@ -133,12 +132,12 @@ namespace CommandMessenger.Transport.Bluetooth
         {
             // Reconnecting to the same device seems to fail a lot of the time, so see
             // if we can remain connected
-            if (BTDevice != null && BTDevice.Address != DeviceAddress)
+            if (BTDevice != null && BTDevice.Name != DeviceName)
             {
                 Close();
             }
 
-            if (string.IsNullOrWhiteSpace(DeviceAddress) || !FindDevice(DeviceAddress))
+            if (string.IsNullOrWhiteSpace(DeviceName) || !FindDevice(DeviceName))
                 return false;
 
             try
@@ -180,7 +179,13 @@ namespace CommandMessenger.Transport.Bluetooth
                 System.Diagnostics.Debug.WriteLine(Ex);
             }
 
-            return Open();
+            if( Open())
+            {
+                // Check worker is not running as a precaution. This needs to be rechecked.
+                if (!_worker.IsRunning) _worker.Start();
+            }
+
+            return IsOpen();
         }
 
         /// <summary> Opens the serial port. </summary>
@@ -264,8 +269,9 @@ namespace CommandMessenger.Transport.Bluetooth
                     }
                 }
             }
-            catch
+            catch (System.Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine(ex);
                 //Do nothing
             }
         }

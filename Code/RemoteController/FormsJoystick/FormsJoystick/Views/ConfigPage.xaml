@@ -30,13 +30,12 @@
             <Slider x:Name="slider5" Maximum="150" Minimum="50" Value="{Binding Move, Mode=TwoWay}" HorizontalOptions="FillAndExpand" />
         </StackLayout>
         <StackLayout Orientation="Horizontal" VerticalOptions="EndAndExpand" Margin="10">
-            <Button Text="Calib Gyro" HorizontalOptions="CenterAndExpand" Command="{Binding CalibGyroCommand}" />
-            <Button Text="Calib Acc" HorizontalOptions="CenterAndExpand" Command="{Binding CalibAccCommand}" />
+            <Button Text="Calib Gyro/Acc" HorizontalOptions="CenterAndExpand" Command="{Binding CalibCommand}" />
+            <Button Text="Reset" HorizontalOptions="CenterAndExpand" Command="{Binding ResetCommand}" />
         </StackLayout>
         <StackLayout Orientation="Horizontal" VerticalOptions="End" Margin="10">
             <Button Text="Read" HorizontalOptions="CenterAndExpand" Command="{Binding ReadCommand}" />
             <Button Text="Write" HorizontalOptions="CenterAndExpand" Command="{Binding WriteCommand}" />
-            <Button Text="Reset" HorizontalOptions="CenterAndExpand" Command="{Binding ResetCommand}" />
         </StackLayout>
     </StackLayout>
 </ContentPage>

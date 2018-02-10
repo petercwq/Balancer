@@ -3,12 +3,14 @@
         {
             "name": "Mac",
             "includePath": [
-                "/Users/WQ/Library/Arduino15/packages/arduino/hardware/avr/1.6.20/cores/arduino"
+                "/Users/WQ/Library/Arduino15/packages/arduino/hardware/avr/1.6.20/cores/arduino",
+                "/Users/WQ/Documents/Arduino/libraries/CmdMessenger"
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": false,
                 "path": [
-                    "/Users/WQ/Library/Arduino15/packages/arduino/hardware/avr/1.6.20/cores/arduino"
+                    "/Users/WQ/Library/Arduino15/packages/arduino/hardware/avr/1.6.20/cores/arduino",
+                    "/Users/WQ/Documents/Arduino/libraries/CmdMessenger"
                 ]
             },
             "intelliSenseMode": "clang-x64",

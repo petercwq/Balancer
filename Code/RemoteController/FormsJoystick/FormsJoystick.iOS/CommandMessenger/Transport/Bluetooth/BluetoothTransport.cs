@@ -20,9 +20,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Android.Bluetooth;
-using Java.Lang;
-using Java.Util;
 
 // Todo: 
 // remove isconnected for speedup. 
@@ -43,14 +40,14 @@ namespace CommandMessenger.Transport.Bluetooth
         private readonly byte[] _readBuffer = new byte[BufferSize];
         private int _bufferFilled;
 
-        // android built in classes for bluetooth operations
-        BluetoothAdapter BTAdapter;
-        BluetoothSocket BTSocket;
-        BluetoothDevice BTDevice;
+        //// android built in classes for bluetooth operations
+        //BluetoothAdapter BTAdapter;
+        //BluetoothSocket BTSocket;
+        //BluetoothDevice BTDevice;
 
         // needed for communication to bluetooth device / network
-        BinaryWriter BTOutputStream;
-        BinaryReader BTInputStream;
+        //BinaryWriter BTOutputStream;
+        //BinaryReader BTInputStream;
 
         // Event queue for all listeners interested in NewLinesReceived events.
         public event EventHandler DataReceived;
@@ -58,7 +55,7 @@ namespace CommandMessenger.Transport.Bluetooth
         /// <summary>
         /// Gets or sets Bluetooth device info
         /// </summary>
-        public string DeviceAddress { get; set; }
+        public string DeviceName { get; set; }
 
         /// <summary>
         /// Bluetooth transport constructor
@@ -89,115 +86,121 @@ namespace CommandMessenger.Transport.Bluetooth
         private bool FindDevice(string deviceAddress)
         {
 
-            try
-            {
-                BTAdapter = BluetoothAdapter.DefaultAdapter;
+            //try
+            //{
+            //    BTAdapter = BluetoothAdapter.DefaultAdapter;
 
-                if (BTAdapter == null)
-                {
-                    return false;
-                }
+            //    if (BTAdapter == null)
+            //    {
+            //        return false;
+            //    }
 
-                if (!BTAdapter.IsEnabled)
-                {
-                    // Intent enableBluetooth = new Intent(BluetoothAdapter.ActionRequestEnable);
-                    // Android.App.Application.Context.StartActivity(enableBluetooth);
-                    BTAdapter.Enable();
-                }
+            //    if (!BTAdapter.IsEnabled)
+            //    {
+            //        // Intent enableBluetooth = new Intent(BluetoothAdapter.ActionRequestEnable);
+            //        // Android.App.Application.Context.StartActivity(enableBluetooth);
+            //        BTAdapter.Enable();
+            //    }
 
-                ICollection<BluetoothDevice> pairedDevices = BTAdapter.BondedDevices;
+            //    ICollection<BluetoothDevice> pairedDevices = BTAdapter.BondedDevices;
 
-                if (pairedDevices.Count > 0)
-                {
-                    foreach (BluetoothDevice device in pairedDevices)
-                    {
-                        if (device.Address == deviceAddress)//"RPP300"
-                        {
-                            BTDevice = device;
-                            break;
-                        }
-                    }
-                }
-                return true;
-            }
-            catch (System.Exception Ex)
-            {
-                System.Diagnostics.Debug.WriteLine(Ex);
-            }
-            return false;
+            //    if (pairedDevices.Count > 0)
+            //    {
+            //        foreach (BluetoothDevice device in pairedDevices)
+            //        {
+            //            if (device.Address == deviceAddress)//"RPP300"
+            //            {
+            //                BTDevice = device;
+            //                break;
+            //            }
+            //        }
+            //    }
+            //    return true;
+            //}
+            //catch (System.Exception Ex)
+            //{
+            //    System.Diagnostics.Debug.WriteLine(Ex);
+            //}
+            // return false;
+            throw new NotImplementedException();
+
         }
 
         /// <summary> Connects to a serial port defined through the current settings. </summary>
         /// <returns> true if it succeeds, false if it fails. </returns>
         public bool Connect()
         {
-            // Reconnecting to the same device seems to fail a lot of the time, so see
-            // if we can remain connected
-            if (BTDevice != null && BTDevice.Address != DeviceAddress)
-            {
-                Close();
-            }
+            //// Reconnecting to the same device seems to fail a lot of the time, so see
+            //// if we can remain connected
+            //if (BTDevice != null && BTDevice.Address != DeviceAddress)
+            //{
+            //    Close();
+            //}
 
-            if (string.IsNullOrWhiteSpace(DeviceAddress) || !FindDevice(DeviceAddress))
-                return false;
+            //if (string.IsNullOrWhiteSpace(DeviceAddress) || !FindDevice(DeviceAddress))
+            //    return false;
 
-            try
-            {
-                // Standard SerialPortService ID
-                UUID uuid = UUID.FromString("00001101-0000-1000-8000-00805f9b34fb");
+            //try
+            //{
+            //    // Standard SerialPortService ID
+            //    UUID uuid = UUID.FromString("00001101-0000-1000-8000-00805f9b34fb");
 
-                try
-                {
-                    BTSocket = BTDevice.CreateRfcommSocketToServiceRecord(uuid);
-                    // CreateInsecureRfcommSocketToServiceRecord
-                }
-                catch (System.Exception e)
-                {
-                    System.Diagnostics.Debug.WriteLine(e);
-                }
+            //    try
+            //    {
+            //        BTSocket = BTDevice.CreateRfcommSocketToServiceRecord(uuid);
+            //        // CreateInsecureRfcommSocketToServiceRecord
+            //    }
+            //    catch (System.Exception e)
+            //    {
+            //        System.Diagnostics.Debug.WriteLine(e);
+            //    }
 
-                try
-                {
-                    BTSocket.Connect();
-                }
-                catch (IOException e)
-                {
-                    System.Diagnostics.Debug.WriteLine(e);
-                    try
-                    {
-                        BTSocket = (BluetoothSocket)BTDevice.Class.GetMethod("createRfcommSocket", new Class[] { uuid.Class }).Invoke(BTDevice, 1);
-                        BTSocket.Connect();
-                    }
-                    catch (System.Exception e2)
-                    {
-                        System.Diagnostics.Debug.WriteLine(e2);
-                    }
-                }
-            }
-            catch (System.Exception Ex)
-            {
-                BTSocket.Dispose();
-                System.Diagnostics.Debug.WriteLine(Ex);
-            }
+            //    try
+            //    {
+            //        BTSocket.Connect();
+            //    }
+            //    catch (IOException e)
+            //    {
+            //        System.Diagnostics.Debug.WriteLine(e);
+            //        try
+            //        {
+            //            BTSocket = (BluetoothSocket)BTDevice.Class.GetMethod("createRfcommSocket", new Class[] { uuid.Class }).Invoke(BTDevice, 1);
+            //            BTSocket.Connect();
+            //        }
+            //        catch (System.Exception e2)
+            //        {
+            //            System.Diagnostics.Debug.WriteLine(e2);
+            //        }
+            //    }
+            //}
+            //catch (System.Exception Ex)
+            //{
+            //    BTSocket.Dispose();
+            //    System.Diagnostics.Debug.WriteLine(Ex);
+            //}
 
-            return Open();
+            //return Open();
+            throw new NotImplementedException();
+
         }
 
         /// <summary> Opens the serial port. </summary>
         /// <returns> true if it succeeds, false if it fails. </returns>
         public bool Open()
         {
-            if (BTSocket == null || !BTSocket.IsConnected)
-                return false;
-            lock (_writeLock)
-            {
-                lock (_readLock)
-                {
-                    BTOutputStream = new BinaryWriter(BTSocket.OutputStream);
-                    BTInputStream = new BinaryReader(BTSocket.InputStream);
-                }
-            }
-            return true;
+            //if (BTSocket == null || !BTSocket.IsConnected)
+            //    return false;
+            //lock (_writeLock)
+            //{
+            //    lock (_readLock)
+            //    {
+            //        BTOutputStream = new BinaryWriter(BTSocket.OutputStream);
+            //        BTInputStream = new BinaryReader(BTSocket.InputStream);
+            //    }
+            //}
+            //return true;
+            throw new NotImplementedException();
+
         }
 
         /// <summary>
@@ -207,7 +210,8 @@ namespace CommandMessenger.Transport.Bluetooth
         public bool IsConnected()
         {
             // If not, test if we are connected
-            return (BTSocket != null) && BTSocket.IsConnected;
+            // return (BTSocket != null) && BTSocket.IsConnected;
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -217,7 +221,8 @@ namespace CommandMessenger.Transport.Bluetooth
         public bool IsOpen()
         {
             // note: this does not always work. Perhaps do a scan
-            return IsConnected() && (BTInputStream != null && BTOutputStream!=null);
+            //return IsConnected() && (BTInputStream != null && BTOutputStream!=null);
+            throw new NotImplementedException();
         }
 
 
@@ -225,20 +230,22 @@ namespace CommandMessenger.Transport.Bluetooth
         /// <returns> true if it succeeds, false if it fails. </returns>
         public bool Close()
         {
-            lock (_writeLock)
-            {
-                lock (_readLock)
-                {
-                    BTOutputStream?.Close();
-                    BTInputStream?.Close();
-                    BTSocket?.Close();
+            //lock (_writeLock)
+            //{
+            //    lock (_readLock)
+            //    {
+            //        BTOutputStream?.Close();
+            //        BTInputStream?.Close();
+            //        BTSocket?.Close();
 
-                    BTOutputStream = null;
-                    BTInputStream = null;
-                    BTSocket = null;
-                    return true;
-                }
-            }
+            //        BTOutputStream = null;
+            //        BTInputStream = null;
+            //        BTSocket = null;
+            //        return true;
+            //    }
+            //}
+            throw new NotImplementedException();
+
         }
 
         /// <summary> Disconnect the bluetooth stream. </summary>
@@ -260,7 +267,7 @@ namespace CommandMessenger.Transport.Bluetooth
                 {
                     lock (_writeLock)
                     {
-                        BTOutputStream.Write(buffer, 0, buffer.Length);
+                        //BTOutputStream.Write(buffer, 0, buffer.Length);
                     }
                 }
             }
@@ -278,32 +285,34 @@ namespace CommandMessenger.Transport.Bluetooth
 
         private int UpdateBuffer()
         {
-            if (IsOpen() && BTInputStream.BaseStream.IsDataAvailable())
-            {
-                try
-                {
-                    var nbrDataRead = BTInputStream.Read(_readBuffer, _bufferFilled, (BufferSize - _bufferFilled));
-                    lock (_readLock)
-                    {
-                        _bufferFilled += nbrDataRead;
-                        //Console.WriteLine("buf: {0}", _bufferFilled.ToString().Length);
-                    }
-                    return _bufferFilled;
-                }
-                catch (IOException)
-                {
-                    //Console.WriteLine("buf: TO");
-                    // Timeout (expected)
-                }
-            }
-            else
-            {
-                // In case of no connection 
-                // Sleep a bit otherwise CPU load will go through roof
-                System.Threading.Thread.Sleep(25);
-            }
+            //if (IsOpen() && BTInputStream.BaseStream.IsDataAvailable())
+            //{
+            //    try
+            //    {
+            //        var nbrDataRead = BTInputStream.Read(_readBuffer, _bufferFilled, (BufferSize - _bufferFilled));
+            //        lock (_readLock)
+            //        {
+            //            _bufferFilled += nbrDataRead;
+            //            //Console.WriteLine("buf: {0}", _bufferFilled.ToString().Length);
+            //        }
+            //        return _bufferFilled;
+            //    }
+            //    catch (IOException)
+            //    {
+            //        //Console.WriteLine("buf: TO");
+            //        // Timeout (expected)
+            //    }
+            //}
+            //else
+            //{
+            //    // In case of no connection 
+            //    // Sleep a bit otherwise CPU load will go through roof
+            //    System.Threading.Thread.Sleep(25);
+            //}
 
-            return _bufferFilled;
+            //return _bufferFilled;
+            throw new NotImplementedException();
+
         }
 
         /// <summary> Reads the serial buffer into the string buffer. </summary>

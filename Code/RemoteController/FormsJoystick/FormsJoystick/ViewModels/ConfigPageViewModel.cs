@@ -9,9 +9,7 @@ namespace FormsJoystick.ViewModels
 {
     public class ConfigPageViewModel : BaseViewModel
     {
-        public ICommand CalibGyroCommand { protected set; get; }
-
-        public ICommand CalibAccCommand { protected set; get; }
+        public ICommand CalibCommand { protected set; get; }
 
         public ICommand ReadCommand { protected set; get; }
 
@@ -33,11 +31,8 @@ namespace FormsJoystick.ViewModels
 
         public ConfigPageViewModel()
         {
-            RegisterProcesser(0x02,ret => P = ret / 10.0f );
-            RegisterProcesser(0x03, ret => I = ret / 10.0f);
-            RegisterProcesser(0x04, ret => D = ret / 10.0f);
-            RegisterProcesser(0x07, ret => Turn = ret);
-            RegisterProcesser(0x08, ret => Move = ret);
+            AttachCommandAction(Commands.GetParams, ret => { P = ret.ReadFloatArg(); I = ret.ReadFloatArg();D = ret.ReadFloatArg();Turn = ret.ReadFloatArg();Move = ret.ReadFloatArg(); });
+
 
             ResetCommand = new Command(() =>
             {
@@ -48,32 +43,26 @@ namespace FormsJoystick.ViewModels
                 Move = 100;
             });
 
-            CalibGyroCommand = new Command(() =>
+            CalibCommand = new Command(() =>
             {
-                PushNewCommand(new CmdPacket() { Command = 0x06, Value = 0x01 });
-            });
-
-            CalibAccCommand = new Command(() =>
-            {
-                PushNewCommand(new CmdPacket() { Command = 0x06, Value = 0x03 });
+                SendCommand(new CommandMessenger.SendCommand((int)Commands.Calibrate, (short)0x03));
             });
 
             ReadCommand = new Command(() =>
             {
-                PushNewCommand(new CmdPacket() { Command = 0x02, Value = 0xff});
-                PushNewCommand(new CmdPacket() { Command = 0x03, Value = 0xff});
-                PushNewCommand(new CmdPacket() { Command = 0x04, Value = 0xff});
-                PushNewCommand(new CmdPacket() { Command = 0x07, Value = 0xff});
-                PushNewCommand(new CmdPacket() { Command = 0x08, Value = 0xff});
+                SendCommand(new CommandMessenger.SendCommand((int)Commands.GetParams));
             });
 
             WriteCommand = new Command(() =>
             {
-                PushNewCommand(new CmdPacket() { Command = 0x02, Value = (byte)(P * 10)});
-                PushNewCommand(new CmdPacket() { Command = 0x03, Value = (byte)(I * 10)});
-                PushNewCommand(new CmdPacket() { Command = 0x04, Value = (byte)(D * 10)});
-                PushNewCommand(new CmdPacket() { Command = 0x07, Value = (byte)(Turn)});
-                PushNewCommand(new CmdPacket() { Command = 0x08, Value = (byte)(Move)});
+                var command = new CommandMessenger.SendCommand((int)Commands.SetParams);
+                command.AddArgument(P);
+                command.AddArgument(I);
+                command.AddArgument(D);
+                command.AddArgument(Turn);
+                command.AddArgument(Move);
+
+                SendCommand(command);
             });
 
             ResetCommand.Execute(null);

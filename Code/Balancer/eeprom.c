@@ -58,7 +58,7 @@ void clear_all()
     unsigned char data = 0;
     for (unsigned int i = EEPROM_START_ADDRESS; i < EEPROM_SIZE; i++)
     {
-        eeprom_write(i, data);
+        eeprom_write_byte((uint8_t *)i, data);
     }
 }
 

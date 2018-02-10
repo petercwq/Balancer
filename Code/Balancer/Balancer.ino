@@ -1,7 +1,22 @@
+#include <CmdMessenger.h>
+
 // Arduino Pro Min 5V + L298N *2 + STH 39236 *2
 
 #include <Wire.h> //Include the Wire.h library so we can communicate with the gyro
 #include <Stepper.h>
+
+// This is the list of recognized commands. These can be commands that can either be sent or received.
+// In order to receive, attach a callback function to these events
+enum
+{
+  kAcknowledge,
+  kError,
+  kSetParams, // Command to request led to be set in specific state
+  kGetParams,
+  kMove,
+  kCalibrate,
+  kGetBattery
+};
 
 // #define DEBUG
 
@@ -16,7 +31,10 @@ const int acc_raw_limit = 8200;
 unsigned long next_loop_time_us, next_voltage_loop_time_ms, last_gyro_time_us, t;
 int bat_vol;
 
-float pid_p = 25, pid_i = 0.4, pid_d = 5;
+float pid_p = 10, pid_i = 0.4, pid_d = 5;
+// turn: 20 ~ 50, move: 50 ~ 150
+float turn_speed = 30, move_speed = 100;
+
 byte start, low_bat, receive_counter, move_byte, receive_index, receive_buffer[3], reply_buf[3] = {'$', 0, 0};
 
 Stepper stepperL(200, 4, 5, 6, 7);
@@ -28,12 +46,72 @@ const float stop_angle = 30, start_angle = 0.3;
 unsigned long left_step_time_us, right_step_time_us, left_delay_mem_us, right_delay_mem_us;
 
 float self_balance_pid_setpoint, pid_setpoint, pid_i_mem, pid_last_d_error, pid_error_temp, pid_output, pid_output_left, pid_output_right;
-float pid_out_max = 200, pid_out_dead_band = 3;
+float pid_out_max = 400, pid_out_dead_band = 5;
 
-// turn: 20 ~ 50, move: 50 ~ 150
-byte turn_speed = 30, move_speed = 100;
+// Attach a new CmdMessenger object to the default Serial port
+CmdMessenger cmdMessenger = CmdMessenger(Serial);
 
-void calibrate(byte cmd)
+// Callbacks define on which received commands we take action
+void attachCommandCallbacks()
+{
+  // Attach callback methods
+  cmdMessenger.attach(OnUnknownCommand);
+  cmdMessenger.attach(kSetParams, OnSetParams);
+  cmdMessenger.attach(kGetParams, OnGetParams);
+  cmdMessenger.attach(kMove, OnMove);
+  cmdMessenger.attach(kCalibrate, OnCalibrate);
+  cmdMessenger.attach(kGetBattery, OnGetBattery);
+}
+
+// Called when a received command has no attached function
+void OnUnknownCommand()
+{
+  cmdMessenger.sendCmd(kError, "No attached callback");
+}
+
+// Callback function that sets led on or off
+void OnSetParams()
+{
+  pid_p = cmdMessenger.readFloatArg();
+  pid_i = cmdMessenger.readFloatArg();
+  pid_d = cmdMessenger.readFloatArg();
+  turn_speed = cmdMessenger.readFloatArg();
+  move_speed = cmdMessenger.readFloatArg();
+  cmdMessenger.sendCmd(kAcknowledge, "Params set");
+}
+
+// Callback function that sets leds blinking frequency
+void OnGetParams()
+{
+  // Send back the result of the addition
+  //cmdMessenger.sendCmd(kFloatAdditionResult,a + b);
+  cmdMessenger.sendCmdStart(kGetParams);
+  cmdMessenger.sendCmdArg(pid_p);
+  cmdMessenger.sendCmdArg(pid_i);
+  cmdMessenger.sendCmdArg(pid_d);
+  cmdMessenger.sendCmdArg(turn_speed);
+  cmdMessenger.sendCmdArg(move_speed);
+  cmdMessenger.sendCmdEnd();
+}
+
+void OnMove()
+{
+  move_byte = cmdMessenger.readInt16Arg() & 0x0F;
+  receive_counter = 0;
+}
+
+void OnCalibrate()
+{
+  calibrate(cmdMessenger.readInt16Arg());
+  cmdMessenger.sendCmd(kAcknowledge, "Calibrated");
+}
+
+void OnGetBattery()
+{
+  cmdMessenger.sendCmd(kGetBattery, (float)(bat_vol / 100.0));
+}
+
+void calibrate(int16_t cmd)
 {
   byte c_gyro, c_acc;
   if (cmd & 0b00000001)
@@ -90,6 +168,17 @@ void setup()
 {
   Serial.begin(115200);
 
+  // Adds newline to every command
+  cmdMessenger.printLfCr();
+
+  // Attach my application's user-defined callback methods
+  attachCommandCallbacks();
+
+  // Send the status to the PC that says the Arduino has booted
+  // Note that this is a good debug function: it will let you also know
+  // if your program had a bug and the arduino restarted
+  cmdMessenger.sendCmd(kAcknowledge, "Arduino has started!");
+
   // LED pin
   pinMode(13, OUTPUT);
 
@@ -129,96 +218,6 @@ void setup()
   right_step_time_us = t;
   last_gyro_time_us = t;
   next_loop_time_us = t + loop_time_us;
-}
-
-void processCmd()
-{
-  // START with $
-  // received protocol                                 |   reply
-  // cmd_byte val_byte                                 |   cmd_byte val_byte
-  // 0x01     0b00000001 - turn left (ccw)             |
-  //          0b00000010 - turn right (cw)             |
-  //          0b00000100 - forward                     |
-  //          0b00001000 - backward                    |
-  // 0x02     pid_p * 10 - set, get if 0xff            |   0x02     pid_p * 10
-  // 0x03     pid_i * 10 - set, get if 0xff            |   0x03     pid_i * 10
-  // 0x04     pid_d * 10 - set, get if 0xff            |   0x04     pid_d * 10
-  // 0x05     0xff       - read battery                |   0x05     voltage * 10 - ex. 10.5 = 105
-  // 0x06     0b00000001 - calibrate gyro              |
-  //          0b00000010 - calibrate acc               |
-  // 0x07     0~100      - set, get turn speed         |   0x07     turn_speed
-  // 0x08     0~100      - set, get move speed         |   0x08     move_speed
-
-  byte cmd = receive_buffer[1];
-  byte val = receive_buffer[2];
-  reply_buf[1] = cmd;
-  reply_buf[2] = 0x00;
-
-  switch (cmd)
-  {
-  case 0x01:
-    move_byte = val;
-    break;
-  case 0x02:
-    if (val != 0xFF)
-    {
-      pid_p = val / 10.0f;
-      reply_buf[2] = val;
-    }
-    else
-    {
-      reply_buf[2] = (byte)(pid_p * 10);
-    }
-    break;
-  case 0x03:
-    if (val != 0xFF)
-    {
-      pid_i = val / 10.0f;
-      reply_buf[2] = val;
-    }
-    else
-    {
-      reply_buf[2] = (byte)(pid_i * 10);
-    }
-    break;
-  case 0x04:
-    if (val != 0xFF)
-    {
-      pid_d = val / 10.0f;
-      reply_buf[2] = val;
-    }
-    else
-    {
-      reply_buf[2] = (byte)(pid_d * 10);
-    }
-    break;
-  case 0x05:
-    reply_buf[2] = (byte)(bat_vol / 10);
-    break;
-  case 0x06:
-    calibrate(val);
-    break;
-  case 0x07:
-    if (val != 0xFF)
-    {
-      turn_speed = val;
-    }
-    reply_buf[2] = turn_speed;
-    break;
-  case 0x08:
-    if (val != 0xFF)
-    {
-      move_speed = val;
-    }
-    reply_buf[2] = move_speed;
-    break;
-  default:
-    break;
-  }
-  if (reply_buf[2] != 0x00)
-  {
-    Serial.write((uint8_t *)reply_buf, sizeof(reply_buf));
-  }
 }
 
 void updateAngle()
@@ -328,31 +327,31 @@ void calcPid()
   //Serial.println(pid_output);
 }
 
-unsigned long pid2delay(float pid_value)
+long pid2delay(float pid_value)
 {
   if (pid_value != 0)
   {
-    // if (pid_value > 0)
-    //   pid_value = (pid_out_max + pid_out_dead_band) - (1 / (pid_value + 9)) * 5500;
-    // else if (pid_value < 0)
-    //   pid_value = -(pid_out_max + pid_out_dead_band) - (1 / (pid_value - 9)) * 5500;
+    if (pid_value > 0)
+      pid_value = (pid_out_max + pid_out_dead_band) - (1 / (pid_value + 9)) * 5500;
+    else if (pid_value < 0)
+      pid_value = -(pid_out_max + pid_out_dead_band) - (1 / (pid_value - 9)) * 5500;
 
-    // if (pid_value > 0)
-    //   pid_value = pid_out_max - pid_value;
-    // else if (pid_value < 0)
-    //   pid_value = -pid_out_max - pid_value;
+    if (pid_value > 0)
+      pid_value = pid_out_max - pid_value;
+    else if (pid_value < 0)
+      pid_value = -pid_out_max - pid_value;
 
-    // return (unsigned long)(pid_value * 20);
-    return (unsigned long)fabs(1000000.0f / pid_value); // + 1
+    return (long)(pid_value * 100);
+    //return (unsigned long)fabs(1000000.0f / pid_value); // + 1
   }
   return 0;
 }
 
-int pid2step(float pid_value)
+int pid2step(long delay_value)
 {
-  if (pid_value > 0)
+  if (delay_value > 0)
     return 1;
-  else if (pid_value < 0)
+  else if (delay_value < 0)
     return -1;
   else
     return 0;
@@ -373,23 +372,21 @@ void calcMove()
 
   if (move_byte & B00000100)
   { //If the third bit of the receive byte is set change the left and right variable to turn the robot to the right
-    if (pid_setpoint > -1 && pid_output > move_speed * -1)
+    if (pid_setpoint > -2.5)
+      pid_setpoint -= 0.05; //Slowly change the setpoint angle so the robot starts leaning forewards
+    if (pid_output > move_speed * -1)
       pid_setpoint -= 0.005; //Slowly change the setpoint angle so the robot starts leaning forewards
-    if (pid_setpoint < -1.5)
-      pid_setpoint += 0.1;
   }
-
   if (move_byte & B00001000)
   { //If the forth bit of the receive byte is set change the left and right variable to turn the robot to the right
-    if (pid_setpoint < 1 && pid_output < move_speed)
+    if (pid_setpoint < 2.5)
+      pid_setpoint += 0.05; //Slowly change the setpoint angle so the robot starts leaning backwards
+    if (pid_output < move_speed)
       pid_setpoint += 0.005; //Slowly change the setpoint angle so the robot starts leaning backwards
-    if (pid_setpoint > 1.5)
-      pid_setpoint -= 0.1;
   }
 
   if (!(move_byte & B00001100))
-  {
-    //Slowly reduce the setpoint to zero if no foreward or backward command is given
+  { //Slowly reduce the setpoint to zero if no foreward or backward command is given
     if (pid_setpoint > 0.5)
       pid_setpoint -= 0.05; //If the PID setpoint is larger then 0.5 reduce the setpoint with 0.05 every loop
     else if (pid_setpoint < -0.5)
@@ -398,14 +395,13 @@ void calcMove()
       pid_setpoint = 0; //If the PID setpoint is smaller then 0.5 or larger then -0.5 set the setpoint to 0
   }
 
-  //The self balancing point is adjusted when there is not forward or backwards movement from the transmitter.
-  //This way the robot will always find it's balancing point
+  //The self balancing point is adjusted when there is not forward or backwards movement from the transmitter. This way the robot will always find it's balancing point
   if (pid_setpoint == 0)
   { //If the setpoint is zero degrees
     if (pid_output < 0)
-      self_balance_pid_setpoint += 0.005; //Increase the self_balance_pid_setpoint if the robot is still moving forewards
+      self_balance_pid_setpoint += 0.0015; //Increase the self_balance_pid_setpoint if the robot is still moving forewards
     if (pid_output > 0)
-      self_balance_pid_setpoint -= 0.005; //Decrease the self_balance_pid_setpoint if the robot is still moving backwards
+      self_balance_pid_setpoint -= 0.0015; //Decrease the self_balance_pid_setpoint if the robot is still moving backwards
   }
 }
 
@@ -415,16 +411,18 @@ void stepMotors()
   if (t - left_step_time_us >= left_delay_mem_us)
   {
     left_step_time_us = t;
-    left_delay_mem_us = pid2delay(pid_output_left);
+    long delay = pid2delay(pid_output_left);
     if (pid_output_left != 0)
-      stepperL.step(pid2step(pid_output_left));
+      stepperL.step(pid2step(delay));
+    left_delay_mem_us = abs(delay);
   }
   if (t - right_step_time_us >= right_delay_mem_us)
   {
     right_step_time_us = t;
-    right_delay_mem_us = pid2delay(pid_output_right);
+    long delay = pid2delay(pid_output_right);
     if (pid_output_right != 0)
-      stepperR.step(pid2step(pid_output_right));
+      stepperR.step(pid2step(delay));
+    right_delay_mem_us = abs(delay);
   }
 }
 
@@ -453,24 +451,14 @@ void updateBatVoltage()
   }
 }
 
-void readSerialInput()
+void loop()
 {
-  // process remote controll
-  while (Serial.available() > 0)
-  {
-    byte rec = Serial.read();
-    if (receive_index == 0 && rec != '$')
-    {
-      continue;
-    }
-    receive_buffer[receive_index++] = rec;
-    if (receive_index == sizeof(receive_buffer))
-    {
-      processCmd();
-      receive_index = 0;
-    }
-    receive_counter = 0;
-  }
+  // Process incoming serial data, and perform callbacks
+  cmdMessenger.feedinSerialData();
+
+  updateBatVoltage();
+
+  // reset move command
   if (receive_counter <= 25)
     receive_counter++;
   else
@@ -478,12 +466,6 @@ void readSerialInput()
     //After 100 (25 * loop_time) milliseconds the received byte is deleted
     move_byte = 0x00;
   }
-}
-
-void loop()
-{
-  updateBatVoltage();
-  readSerialInput();
 
   if (low_bat == 1)
   {
