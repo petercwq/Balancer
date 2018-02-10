@@ -398,10 +398,10 @@ void calcMove()
   //The self balancing point is adjusted when there is not forward or backwards movement from the transmitter. This way the robot will always find it's balancing point
   if (pid_setpoint == 0)
   { //If the setpoint is zero degrees
-    if (pid_output < 0)
-      self_balance_pid_setpoint += 0.0015; //Increase the self_balance_pid_setpoint if the robot is still moving forewards
+    if (pid_output < 0) // 0.0015
+      self_balance_pid_setpoint += 0.005; //Increase the self_balance_pid_setpoint if the robot is still moving forewards
     if (pid_output > 0)
-      self_balance_pid_setpoint -= 0.0015; //Decrease the self_balance_pid_setpoint if the robot is still moving backwards
+      self_balance_pid_setpoint -= 0.005; //Decrease the self_balance_pid_setpoint if the robot is still moving backwards
   }
 }
 
@@ -459,7 +459,7 @@ void loop()
   updateBatVoltage();
 
   // reset move command
-  if (receive_counter <= 25)
+  if (receive_counter <= 10)
     receive_counter++;
   else
   {
