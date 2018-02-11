@@ -4,6 +4,7 @@
 
 #include <Wire.h> //Include the Wire.h library so we can communicate with the gyro
 #include <Stepper.h>
+#include "eeprom.c"
 
 // This is the list of recognized commands. These can be commands that can either be sent or received.
 // In order to receive, attach a callback function to these events
@@ -25,16 +26,10 @@ const unsigned long voltage_loop_time_ms = 5000;
 const unsigned long loop_time_us = 4000;
 
 const int gyro_address = 0x68; //MPU-6050 I2C address (0x68 or 0x69)
-long gyro_pitch_calib_value = -21, gyro_yaw_calib_value = -521, acc_z_calib_value = -400;
 const int acc_raw_limit = 8200;
 
 unsigned long next_loop_time_us, next_voltage_loop_time_ms, last_gyro_time_us, t;
 int bat_vol;
-
-float pid_p = 15, pid_i = 1.0, pid_d = 5;
-
-// turn: 20 ~ 50, move: 50 ~ 150
-float turn_speed = 30, move_speed = 30;
 
 byte start, low_bat, receive_counter, move_byte, receive_index, receive_buffer[3], reply_buf[3] = {'$', 0, 0};
 
@@ -73,11 +68,12 @@ void OnUnknownCommand()
 // Callback function that sets led on or off
 void OnSetParams()
 {
-  pid_p = cmdMessenger.readFloatArg();
-  pid_i = cmdMessenger.readFloatArg();
-  pid_d = cmdMessenger.readFloatArg();
-  turn_speed = cmdMessenger.readFloatArg();
-  move_speed = cmdMessenger.readFloatArg();
+  e2_conf.pid_p = cmdMessenger.readFloatArg();
+  e2_conf.pid_i = cmdMessenger.readFloatArg();
+  e2_conf.pid_d = cmdMessenger.readFloatArg();
+  e2_conf.turn_speed = cmdMessenger.readFloatArg();
+  e2_conf.move_speed = cmdMessenger.readFloatArg();
+  save_conf();
   cmdMessenger.sendCmd(kAcknowledge, "Params set");
 }
 
@@ -87,11 +83,11 @@ void OnGetParams()
   // Send back the result of the addition
   //cmdMessenger.sendCmd(kFloatAdditionResult,a + b);
   cmdMessenger.sendCmdStart(kGetParams);
-  cmdMessenger.sendCmdArg(pid_p);
-  cmdMessenger.sendCmdArg(pid_i);
-  cmdMessenger.sendCmdArg(pid_d);
-  cmdMessenger.sendCmdArg(turn_speed);
-  cmdMessenger.sendCmdArg(move_speed);
+  cmdMessenger.sendCmdArg(e2_conf.pid_p);
+  cmdMessenger.sendCmdArg(e2_conf.pid_i);
+  cmdMessenger.sendCmdArg(e2_conf.pid_d);
+  cmdMessenger.sendCmdArg(e2_conf.turn_speed);
+  cmdMessenger.sendCmdArg(e2_conf.move_speed);
   cmdMessenger.sendCmdEnd();
 }
 
@@ -115,6 +111,7 @@ void OnGetBattery()
 void calibrate(int16_t cmd)
 {
   byte c_gyro, c_acc;
+  long gyro_yaw_calib_value=0,gyro_pitch_calib_value=0,acc_z_calib_value=0;
   if (cmd & 0b00000001)
   {
     c_gyro = 1;
@@ -154,15 +151,17 @@ void calibrate(int16_t cmd)
 
     delay(10);
   }
+
   if (c_gyro)
   {
-    gyro_pitch_calib_value /= calibration_loops;
-    gyro_yaw_calib_value /= calibration_loops;
+    e2_conf.gyro_pitch_zero = gyro_pitch_calib_value / calibration_loops;
+    e2_conf.gyro_yaw_zero = gyro_yaw_calib_value / calibration_loops;
   }
   if (c_acc)
   {
-    acc_z_calib_value /= calibration_loops;
+    e2_conf.acc_z_zero = acc_z_calib_value / calibration_loops;
   }
+  save_conf();
 }
 
 void setup()
@@ -212,7 +211,8 @@ void setup()
   Wire.write(0x03);                     //Set the register bits as 00000011 (Set Digital Low Pass Filter to 44Hz for Acc with 4.9ms delay, and 42Hz for Gyro with 4.8ms delay)
   Wire.endTransmission();               //End the transmission with the gyro
 
-  calibrate(0x03);
+  load_conf();
+  // calibrate(0x03);
 
   t = micros();
   left_step_time_us = t;
@@ -229,7 +229,7 @@ void updateAngle()
   Wire.requestFrom(gyro_address, 2);    //Request 2 bytes from the gyro, ACCEL_ZOUT_H ACCEL_ZOUT_L
   //Prevent division by zero by limiting the acc data to +/-acc_raw_limit;
   //Calculate the current angle according to the accelerometer
-  int acc_z = (Wire.read() << 8 | Wire.read()) - (int)acc_z_calib_value;
+  int acc_z = (Wire.read() << 8 | Wire.read()) - (int)e2_conf.acc_z_zero;
   acc_z = constrain(acc_z, -acc_raw_limit, acc_raw_limit);
   angle_acc = asin((float)acc_z / 8200.0) * 57.296;
 #ifdef DEBUG
@@ -249,9 +249,9 @@ void updateAngle()
   Wire.write(0x43);                     //Start reading at register 0x43
   Wire.endTransmission();               //End the transmission
   Wire.requestFrom(gyro_address, 4);    //Request 4 bytes from the gyro, GYRO_XOUT_H, GYRO_XOUT_L, GYRO_YOUT_H, GYRO_YOUT_L
-  int gyro_yaw_data_raw = (Wire.read() << 8 | Wire.read()) - (int)gyro_yaw_calib_value;
+  int gyro_yaw_data_raw = (Wire.read() << 8 | Wire.read()) - (int)e2_conf.gyro_yaw_zero;
   // 500°/s / 2^16 * loop_time = 0.00762939453125 * loop_time
-  angle_gyro += ((Wire.read() << 8 | Wire.read()) - (int)gyro_pitch_calib_value) * 0.0076294f * (micros() - last_gyro_time_us) / 1000000.0f;
+  angle_gyro += ((Wire.read() << 8 | Wire.read()) - (int)e2_conf.gyro_pitch_zero) * 0.0076294f * (micros() - last_gyro_time_us) / 1000000.0f;
   //Calculate the traveled during this loop angle and add this to the angle_gyro variable
   last_gyro_time_us = micros();
 
@@ -310,11 +310,11 @@ void calcPid()
     pid_error_temp += pid_output * 0.015;
 
   //Calculate the I-controller value and add it to the pid_i_mem variable
-  pid_i_mem += pid_i * pid_error_temp;
+  pid_i_mem += e2_conf.pid_i * pid_error_temp;
   pid_i_mem = constrain(pid_i_mem, -pid_out_max, pid_out_max);
 
   //Calculate the PID output value
-  pid_output = pid_p * pid_error_temp + pid_i_mem + pid_d * (pid_error_temp - pid_last_d_error);
+  pid_output = e2_conf.pid_p * pid_error_temp + pid_i_mem + e2_conf.pid_d * (pid_error_temp - pid_last_d_error);
   pid_output = constrain(pid_output, -pid_out_max, pid_out_max);
 
   pid_last_d_error = pid_error_temp; //Store the error for the next loop
@@ -362,27 +362,27 @@ void calcMove()
 {
   if (move_byte & B00000001)
   {                                 //If the first bit of the receive byte is set change the left and right variable to turn the robot to the left
-    pid_output_left += turn_speed;  //Increase the left motor speed
-    pid_output_right -= turn_speed; //Decrease the right motor speed
+    pid_output_left += e2_conf.turn_speed;  //Increase the left motor speed
+    pid_output_right -= e2_conf.turn_speed; //Decrease the right motor speed
   }
   if (move_byte & B00000010)
   {                                 //If the second bit of the receive byte is set change the left and right variable to turn the robot to the right
-    pid_output_left -= turn_speed;  //Decrease the left motor speed
-    pid_output_right += turn_speed; //Increase the right motor speed
+    pid_output_left -= e2_conf.turn_speed;  //Decrease the left motor speed
+    pid_output_right += e2_conf.turn_speed; //Increase the right motor speed
   }
 
   if (move_byte & B00000100)
   { //If the third bit of the receive byte is set change the left and right variable to turn the robot to the right
     if (pid_setpoint > -2.5)
       pid_setpoint -= 0.05; //Slowly change the setpoint angle so the robot starts leaning forewards
-    if (pid_output > move_speed * -1)
+    if (pid_output > e2_conf.move_speed * -1)
       pid_setpoint -= 0.005; //Slowly change the setpoint angle so the robot starts leaning forewards
   }
   if (move_byte & B00001000)
   { //If the forth bit of the receive byte is set change the left and right variable to turn the robot to the right
     if (pid_setpoint < 2.5)
       pid_setpoint += 0.05; //Slowly change the setpoint angle so the robot starts leaning backwards
-    if (pid_output < move_speed)
+    if (pid_output < e2_conf.move_speed)
       pid_setpoint += 0.005; //Slowly change the setpoint angle so the robot starts leaning backwards
   }
 

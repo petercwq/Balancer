@@ -66,6 +66,7 @@ namespace FormsJoystick.ViewModels
             });
 
             ResetCommand.Execute(null);
+            QueueCommand(new CommandMessenger.SendCommand((int)Commands.GetParams));
         }
     }
 }
