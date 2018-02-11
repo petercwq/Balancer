@@ -27,7 +27,7 @@
         <StackLayout Orientation="Horizontal" Margin="10">
             <Label Text="Move Speed:" WidthRequest="100" />
             <Label Text="{Binding Path=Value, Mode=OneWay, StringFormat='{0:F0}'}" BindingContext="{x:Reference Name=slider5}" WidthRequest="40" />
-            <Slider x:Name="slider5" Maximum="150" Minimum="50" Value="{Binding Move, Mode=TwoWay}" HorizontalOptions="FillAndExpand" />
+            <Slider x:Name="slider5" Maximum="120" Minimum="20" Value="{Binding Move, Mode=TwoWay}" HorizontalOptions="FillAndExpand" />
         </StackLayout>
         <StackLayout Orientation="Horizontal" VerticalOptions="EndAndExpand" Margin="10">
             <Button Text="Calib Gyro/Acc" HorizontalOptions="CenterAndExpand" Command="{Binding CalibCommand}" />

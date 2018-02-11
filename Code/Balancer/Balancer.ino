@@ -31,9 +31,10 @@ const int acc_raw_limit = 8200;
 unsigned long next_loop_time_us, next_voltage_loop_time_ms, last_gyro_time_us, t;
 int bat_vol;
 
-float pid_p = 10, pid_i = 0.4, pid_d = 5;
+float pid_p = 15, pid_i = 1.0, pid_d = 5;
+
 // turn: 20 ~ 50, move: 50 ~ 150
-float turn_speed = 30, move_speed = 100;
+float turn_speed = 30, move_speed = 30;
 
 byte start, low_bat, receive_counter, move_byte, receive_index, receive_buffer[3], reply_buf[3] = {'$', 0, 0};
 

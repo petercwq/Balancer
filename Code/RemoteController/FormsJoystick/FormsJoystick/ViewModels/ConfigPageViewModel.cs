@@ -37,10 +37,10 @@ namespace FormsJoystick.ViewModels
             ResetCommand = new Command(() =>
             {
                 P = 15;
-                I = 1.5f;
-                D = 30;
+                I = 1f;
+                D = 5;
                 Turn = 30;
-                Move = 100;
+                Move = 30;
             });
 
             CalibCommand = new Command(() =>
